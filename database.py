@@ -12,7 +12,8 @@ DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:@localhost/otopad
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
-    pool_recycle=300
+    pool_recycle=300,
+    connect_args={"ssl": {"ssl_verify_cert": False}} # <-- TAMBAHIN INI DOANG
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
