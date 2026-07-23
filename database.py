@@ -1,15 +1,19 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
 
-DB_USER = "root"
-DB_PASS = ""  # Laragon default kosong
-DB_HOST = "localhost"
-DB_NAME = "otopadang_db"  # <- UBAH INI, sesuai nama DB lu
+load_dotenv()
 
-DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}" # <- UBAH INI
+# BACA DARI RAILWAY VARIABLE. KALO LOKAL JATUH KE LARAGON
+DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:@localhost/otopadang_db")
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    pool_recycle=300
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
