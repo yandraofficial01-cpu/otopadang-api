@@ -2,16 +2,16 @@ import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware 
-from database import engine, Base
-import models # penting biar tabel kebaca
+# from database import engine, Base  <-- HAPUS INI
+import models 
 from routers import cars, houses, blog, ai_router, auth_router, showroom
 
 app = FastAPI(title="Otopadang API")
 
-# 1. BIKIN TABEL OTOMATIS PAS STARTUP - JANGAN DI GLOBAL
-@app.on_event("startup")
-def create_tables():
-    Base.metadata.create_all(bind=engine)
+# HAPUS TOTAL FUNGSI INI
+# @app.on_event("startup")
+# def create_tables():
+#     Base.metadata.create_all(bind=engine)
 
 # 2. SETTING CORS - WAJIB BUAT NEXT.JS
 origins = [
