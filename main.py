@@ -6,17 +6,19 @@ from fastapi.middleware.cors import CORSMiddleware
 import models 
 from routers import cars, houses, blog, ai_router, auth_router, showroom
 
-app = FastAPI(title="Otopadang API")
+app = FastAPI(
+    title="Otopadang API",
+    description="API untuk Otopadang - Mobil, Rumah, Blog, AI",
+    version="1.0.0",
+    docs_url="/docs",          # <- Biar swagger muncul
+    redoc_url="/redoc",        # <- Biar redoc muncul
+    openapi_url="/openapi.json"
+)
 
-# HAPUS TOTAL FUNGSI INI
-# @app.on_event("startup")
-# def create_tables():
-#     Base.metadata.create_all(bind=engine)
-
-# 2. SETTING CORS - WAJIB BUAT NEXT.JS
+# 1. SETTING CORS - WAJIB BUAT NEXT.JS
 origins = [
     "http://localhost:3000",  # Next.js dev
-    "https://otpadang.com",   # Nanti domain asli
+    "https://otpadang.com",   # Domain asli
 ]
 
 app.add_middleware(
@@ -27,10 +29,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 3. BIKIN FOLDER STATIC BISA DIAKSES
+# 2. BIKIN FOLDER STATIC BISA DIAKSES
+# Pastiin ada folder /static di root project
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# 4. DAFTARIN SEMUA ROUTER
+# 3. DAFTARIN SEMUA ROUTER
 app.include_router(auth_router.router, prefix="/auth", tags=["Auth"])
 app.include_router(cars.router, prefix="/cars", tags=["Cars"])
 app.include_router(houses.router, prefix="/houses", tags=["Houses"])
@@ -42,7 +45,7 @@ app.include_router(showroom.router, prefix="/showroom", tags=["Showroom"])
 def read_root():
     return {"message": "Otopadang API Jalan Bro!"}
 
-# 5. INI TAMBAHAN BUAT RAILWAY - WAJIB ADA
+# 4. INI TAMBAHAN BUAT RAILWAY - WAJIB ADA
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
