@@ -8,6 +8,8 @@ class Showroom(Base):
     id = Column(Integer, primary_key=True, index=True)
     nama_showroom = Column(String(100), nullable=False)
     subdomain = Column(String(50), unique=True, nullable=False)
+    alamat = Column(Text) # <-- BARU TAMBAH
+    deskripsi = Column(Text) # <-- BARU TAMBAH
     logo = Column(String(255))
     wa_number = Column(String(20), nullable=False)
     paket = Column(Enum('Basic', 'Premium'), default='Basic')
@@ -57,7 +59,6 @@ class Car(Base):
     video_url = Column(String(255))
     no_wa_showroom = Column(String(20))
     
-    # INI YANG UDAH DI FIX BRO
     status = Column(Enum('pending', 'approved', 'ready', 'sold'), default='pending')
     
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
