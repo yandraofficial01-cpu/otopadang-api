@@ -1,14 +1,49 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional
-from datetime import datetime
-from enum import Enum # tambahin ini
+from datetime import datetime, date
+from enum import Enum
 
+# ENUM
 class StatusEnum(str, Enum):
     pending = "pending"
     approved = "approved"
     ready = "ready"
     sold = "sold"
 
+class PaketEnum(str, Enum):
+    Basic = "Basic"
+    Premium = "Premium"
+
+class StatusBayarEnum(str, Enum):
+    aktif = "aktif"
+    expired = "expired"
+
+# ========== SHOWROOM ==========
+class ShowroomCreate(BaseModel):
+    nama_showroom: str
+    subdomain: str
+    wa_number: str
+    alamat: Optional[str] = None # <-- INI WAJIB ADA
+    deskripsi: Optional[str] = None # <-- INI WAJIB ADA
+    logo: Optional[str] = None
+    email: EmailStr
+    password: str
+
+class ShowroomResponse(BaseModel):
+    id: int
+    nama_showroom: str
+    subdomain: str
+    alamat: Optional[str] = None
+    deskripsi: Optional[str] = None
+    logo: Optional[str] = None
+    wa_number: str
+    paket: PaketEnum
+    status_bayar: StatusBayarEnum
+
+    class Config:
+        from_attributes = True
+
+# ========== CAR ==========
 class CarCreate(BaseModel):
     showroom_id: int
     nama_mobil: str
@@ -35,7 +70,7 @@ class CarCreate(BaseModel):
     foto_url_8: Optional[str] = None
     video_url: Optional[str] = None
     no_wa_showroom: Optional[str] = None
-    status: StatusEnum = StatusEnum.pending # <- GANTI INI
+    status: StatusEnum = StatusEnum.pending
 
 class Car(CarCreate):
     id: int
