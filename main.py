@@ -3,12 +3,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware 
 import models 
-import auth # <-- HAPUS "app." KARENA FILE NYA DI ROOT
-from routers import cars, houses, blog, ai_router, showroom
-import database # <-- HAPUS "app." JUGA
-
-# Biar tabel auto kebuat pas deploy pertama
-models.Base.metadata.create_all(bind=database.engine)
+from routers import cars, houses, blog, ai_router, auth_router, showroom
 
 app = FastAPI(
     title="Otopadang API",
@@ -24,7 +19,7 @@ origins = [
     "http://localhost:3000",            # Next.js dev
     "https://otpadang.com",             # Domain asli
     "https://www.otpadang.com",         # Domain pake www
-    "https://otopadang-frontend.vercel.app"  # Frontend Vercel
+    "https://otopadang-frontend.vercel.app"  # <- UDAH BENER INI
 ]
 
 app.add_middleware(
@@ -37,8 +32,7 @@ app.add_middleware(
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# 2. DAFTARIN ROUTER
-app.include_router(auth.router, prefix="/auth", tags=["Auth"])
+app.include_router(auth_router.router, prefix="/auth", tags=["Auth"])
 app.include_router(cars.router, prefix="/cars", tags=["Cars"])
 app.include_router(houses.router, prefix="/houses", tags=["Houses"])
 app.include_router(blog.router, prefix="/blog", tags=["Blog"])
@@ -49,7 +43,7 @@ app.include_router(showroom.router, prefix="/showroom", tags=["Showroom"])
 def read_root():
     return {"message": "Otopadang API Jalan Bro!"}
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port)
