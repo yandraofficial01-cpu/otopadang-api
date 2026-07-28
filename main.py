@@ -3,7 +3,12 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware 
 import models 
+from database import engine # <-- TAMBAH INI BUAT BIKIN TABEL
+from auth import router as admin_router # <-- TAMBAH INI KHUS ADMIN
 from routers import cars, houses, blog, ai_router, auth_router, showroom
+
+# BIKIN TABEL OTOMATIS PAS START
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Otopadang API",
@@ -16,10 +21,10 @@ app = FastAPI(
 
 # 1. SETTING CORS - UDAH FIX
 origins = [
-    "http://localhost:3000",            # Next.js dev
-    "https://otpadang.com",             # Domain asli
-    "https://www.otpadang.com",         # Domain pake www
-    "https://otopadang-frontend.vercel.app"  # <- UDAH BENER INI
+    "http://localhost:3000",            
+    "https://otpadang.com",             
+    "https://www.otpadang.com",         
+    "https://otopadang-frontend.vercel.app"  
 ]
 
 app.add_middleware(
@@ -32,7 +37,11 @@ app.add_middleware(
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-app.include_router(auth_router.router, prefix="/auth", tags=["Auth"])
+# ROUTER BARU
+app.include_router(admin_router, prefix="/admin", tags=["Admin"]) # <-- BUAT KAMU: register showroom + upload rumah
+app.include_router(auth_router.router, prefix="/auth", tags=["Auth Showroom"]) # <-- BUAT SHOWROOM LOGIN
+
+# ROUTER LAMA KAMU
 app.include_router(cars.router, prefix="/cars", tags=["Cars"])
 app.include_router(houses.router, prefix="/houses", tags=["Houses"])
 app.include_router(blog.router, prefix="/blog", tags=["Blog"])
@@ -43,7 +52,7 @@ app.include_router(showroom.router, prefix="/showroom", tags=["Showroom"])
 def read_root():
     return {"message": "Otopadang API Jalan Bro!"}
 
-if _name_ == "_main_":
+if __name__ == "__main__": # <-- FIX TYPO DISINI
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port)
