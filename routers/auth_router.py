@@ -4,9 +4,9 @@ from pydantic import BaseModel, EmailStr
 
 from database import get_db
 from models import UserShowroom
-from auth import hash_password, verify_password # <- import dari Backend/auth.py
+from ..auth import hash_password, verify_password # <-- TAMBAH TITIK 2
 
-router = APIRouter()
+router = APIRouter(prefix="/auth", tags=["Auth"]) # <-- KASIH PREFIX BIAR GA TABRAKAN
 
 class UserRegister(BaseModel):
     email: EmailStr
