@@ -4,9 +4,9 @@ from pydantic import BaseModel, EmailStr
 
 from database import get_db
 from models import UserShowroom
-from ..auth import hash_password, verify_password # <-- TAMBAH TITIK 2
+from auth import hash_password, verify_password # <-- HAPUS TITIK 2 NYA
 
-router = APIRouter(prefix="/auth", tags=["Auth"]) # <-- KASIH PREFIX BIAR GA TABRAKAN
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 class UserRegister(BaseModel):
     email: EmailStr
@@ -23,7 +23,7 @@ def register(user: UserRegister, db: Session = Depends(get_db)):
     if cek: 
         raise HTTPException(status_code=400, detail="Email sudah terdaftar")
     
-    hashed = hash_password(user.password) # pake dari auth.py
+    hashed = hash_password(user.password)
     new_user = UserShowroom(email=user.email, password=hashed, showroom_id=user.showroom_id)
     db.add(new_user); db.commit(); db.refresh(new_user)
     return {"msg": "Register berhasil", "id": new_user.id, "showroom_id": new_user.showroom_id}
@@ -34,7 +34,7 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     if not db_user: 
         raise HTTPException(status_code=400, detail="Email atau password salah")
     
-    if not verify_password(user.password, db_user.password): # pake dari auth.py
+    if not verify_password(user.password, db_user.password):
         raise HTTPException(status_code=400, detail="Email atau password salah")
     
     return {"msg": "Login berhasil", "showroom_id": db_user.showroom_id, "email": db_user.email}
