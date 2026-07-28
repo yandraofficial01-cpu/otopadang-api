@@ -3,12 +3,12 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware 
 import models 
-from app import auth # <-- INI PENTING, karena auth.py ada di root app/
+import auth # <-- HAPUS "app." KARENA FILE NYA DI ROOT
 from routers import cars, houses, blog, ai_router, showroom
-from app.database import engine
+import database # <-- HAPUS "app." JUGA
 
 # Biar tabel auto kebuat pas deploy pertama
-models.Base.metadata.create_all(bind=engine)
+models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI(
     title="Otopadang API",
@@ -38,7 +38,7 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # 2. DAFTARIN ROUTER
-app.include_router(auth.router, prefix="/auth", tags=["Auth"]) # <-- PAKE INI
+app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(cars.router, prefix="/cars", tags=["Cars"])
 app.include_router(houses.router, prefix="/houses", tags=["Houses"])
 app.include_router(blog.router, prefix="/blog", tags=["Blog"])
