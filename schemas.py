@@ -18,13 +18,18 @@ class StatusBayarEnum(str, Enum):
     aktif = "aktif"
     expired = "expired"
 
+# ========== TAMBAHAN BARU BUAT LOGIN ==========
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
 # ========== SHOWROOM ==========
 class ShowroomCreate(BaseModel):
     nama_showroom: str
     subdomain: str
     wa_number: str
-    alamat: Optional[str] = None # <-- INI WAJIB ADA
-    deskripsi: Optional[str] = None # <-- INI WAJIB ADA
+    alamat: Optional[str] = None
+    deskripsi: Optional[str] = None
     logo: Optional[str] = None
     email: EmailStr
     password: str
