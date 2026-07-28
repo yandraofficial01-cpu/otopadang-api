@@ -3,7 +3,12 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware 
 import models 
-from routers import cars, houses, blog, ai_router, auth_router, showroom
+from app import auth # <-- INI PENTING, karena auth.py ada di root app/
+from routers import cars, houses, blog, ai_router, showroom
+from app.database import engine
+
+# Biar tabel auto kebuat pas deploy pertama
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Otopadang API",
@@ -19,7 +24,7 @@ origins = [
     "http://localhost:3000",            # Next.js dev
     "https://otpadang.com",             # Domain asli
     "https://www.otpadang.com",         # Domain pake www
-    "https://otopadang-frontend.vercel.app"  # <- UDAH BENER INI
+    "https://otopadang-frontend.vercel.app"  # Frontend Vercel
 ]
 
 app.add_middleware(
@@ -32,7 +37,8 @@ app.add_middleware(
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-app.include_router(auth_router.router, prefix="/auth", tags=["Auth"])
+# 2. DAFTARIN ROUTER
+app.include_router(auth.router, prefix="/auth", tags=["Auth"]) # <-- PAKE INI
 app.include_router(cars.router, prefix="/cars", tags=["Cars"])
 app.include_router(houses.router, prefix="/houses", tags=["Houses"])
 app.include_router(blog.router, prefix="/blog", tags=["Blog"])
