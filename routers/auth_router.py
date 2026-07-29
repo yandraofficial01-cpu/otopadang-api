@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from models import UserShowroom, Showroom
-from auth import verify_password # cuma butuh verify
+from routers.admin_router import verify_password # <-- UDAH DIGANTI
 import schemas
 
 router = APIRouter(prefix="/auth", tags=["Auth Showroom"])
@@ -14,6 +14,9 @@ def login_showroom(data: schemas.LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Email atau password salah")
     
     showroom = db.query(Showroom).filter(Showroom.id == db_user.showroom_id).first()
+    if not showroom:
+        raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
+        
     return {
         "message": "Login Berhasil", 
         "showroom_id": showroom.id,
