@@ -3,8 +3,10 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware 
 import models 
-from database import engine # <-- TAMBAH INI BUAT BIKIN TABEL
-from auth import router as admin_router # <-- TAMBAH INI KHUS ADMIN
+from database import engine # BUAT BIKIN TABEL
+
+# FIX: IMPORT DARI routers.admin_router BUKAN auth
+from routers.admin_router import router as admin_router 
 from routers import cars, houses, blog, ai_router, auth_router, showroom
 
 # BIKIN TABEL OTOMATIS PAS START
@@ -38,8 +40,8 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # ROUTER BARU
-app.include_router(admin_router, prefix="/admin", tags=["Admin"]) # <-- BUAT KAMU: register showroom + upload rumah
-app.include_router(auth_router.router, prefix="/auth", tags=["Auth Showroom"]) # <-- BUAT SHOWROOM LOGIN
+app.include_router(admin_router) # <-- UDAH GA PERLU prefix LAGI. UDAH ADA DI admin_router.py
+app.include_router(auth_router.router)
 
 # ROUTER LAMA KAMU
 app.include_router(cars.router, prefix="/cars", tags=["Cars"])
