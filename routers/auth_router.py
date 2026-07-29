@@ -16,10 +16,19 @@ def login_showroom(data: schemas.LoginRequest, db: Session = Depends(get_db)):
     showroom = db.query(Showroom).filter(Showroom.id == db_user.showroom_id).first()
     if not showroom:
         raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
+    
+    # LOGIKA ROLE FINAL
+    if db_user.email in ["admin@otopadang.com", "yandraofficial01@gmail.com"]:
+        role = "admin" # Kamu + Admin pusat = akses full dashboard
+    else:
+        role = "showroom" # Showroom lain = cuma input mobil, edit harga, edit WA
         
     return {
         "message": "Login Berhasil", 
+        "token": f"token-{db_user.id}", # Sementara buat simpan di localStorage
         "showroom_id": showroom.id,
         "subdomain": showroom.subdomain,
-        "nama_showroom": showroom.nama_showroom
+        "nama_showroom": showroom.nama_showroom,
+        "email": db_user.email,
+        "role": role # <-- INI KUNCINYA BUAT ARAHIN FE
     }
