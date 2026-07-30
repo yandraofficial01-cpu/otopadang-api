@@ -8,16 +8,21 @@ class Showroom(Base):
     id = Column(Integer, primary_key=True, index=True)
     nama_showroom = Column(String(100), nullable=False)
     subdomain = Column(String(50), unique=True, nullable=False)
-    alamat = Column(Text) # <-- BARU TAMBAH
-    deskripsi = Column(Text) # <-- BARU TAMBAH
+    alamat = Column(Text)
+    deskripsi = Column(Text)
     logo = Column(String(255))
     wa_number = Column(String(20), nullable=False)
     paket = Column(Enum('Basic', 'Premium'), default='Basic')
     status_bayar = Column(Enum('aktif', 'expired'), default='aktif')
+    
+    # INI TAMBAHAN PENTING BUAT APPROVE
+    status = Column(Enum('pending', 'approved', 'rejected'), default='pending', nullable=False) 
+    
     tgl_expired = Column(Date)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     
     cars = relationship("Car", back_populates="showroom", cascade="all, delete")
+    houses = relationship("House", back_populates="showroom", cascade="all, delete") # <-- TAMBAH INI
     users = relationship("UserShowroom", back_populates="showroom", cascade="all, delete")
 
 class UserShowroom(Base):
@@ -59,6 +64,7 @@ class Car(Base):
     video_url = Column(String(255))
     no_wa_showroom = Column(String(20))
     
+    # Status ini buat status mobilnya ya, bukan showroom
     status = Column(Enum('pending', 'approved', 'ready', 'sold'), default='pending')
     
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
@@ -67,6 +73,10 @@ class Car(Base):
 class House(Base):
     __tablename__ = "houses"
     id = Column(Integer, primary_key=True, index=True)
+    
+    # INI TAMBAHAN PENTING BIAR BISA DIPISAH PER SHOWROOM
+    showroom_id = Column(Integer, ForeignKey("showrooms.id", ondelete="CASCADE"), nullable=True) # nullable=True biar rumah developer punya kamu gak wajib isi
+    
     nama_rumah = Column(String(100))
     tipe = Column(String(50))
     alamat = Column(Text)
@@ -89,6 +99,9 @@ class House(Base):
     video_url = Column(String(255))
     wa_number = Column(String(20), default='628979879518')
     status = Column(Enum('available', 'sold'), default='available')
+
+    # TAMBAH RELASI INI
+    showroom = relationship("Showroom", back_populates="houses")
 
 class LeadRumah(Base):
     __tablename__ = "leads_rumah"
