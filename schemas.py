@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 from datetime import datetime, date
 from enum import Enum
@@ -10,6 +10,11 @@ class StatusEnum(str, Enum):
     ready = "ready"
     sold = "sold"
 
+class ShowroomStatusEnum(str, Enum): # <-- BARU BUAT STATUS SHOWROOM
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
+
 class PaketEnum(str, Enum):
     Basic = "Basic"
     Premium = "Premium"
@@ -18,10 +23,18 @@ class StatusBayarEnum(str, Enum):
     aktif = "aktif"
     expired = "expired"
 
-# ========== TAMBAHAN BARU BUAT LOGIN ==========
+# ========== AUTH ==========
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+class RegisterShowroomRequest(BaseModel): # <-- INI YG KURANG TADI
+    nama_showroom: str = Field(..., min_length=3)
+    subdomain: str = Field(..., min_length=3, regex="^[a-z0-9-]+$")
+    alamat: Optional[str] = None
+    wa_number: str
+    email: EmailStr
+    password: str = Field(..., min_length=6)
 
 # ========== SHOWROOM ==========
 class ShowroomCreate(BaseModel):
@@ -44,13 +57,21 @@ class ShowroomResponse(BaseModel):
     wa_number: str
     paket: PaketEnum
     status_bayar: StatusBayarEnum
+    status: ShowroomStatusEnum # <-- TAMBAH INI BIAR FE TAU STATUS APPROVE
 
     class Config:
         from_attributes = True
 
+class ShowroomUpdate(BaseModel): # <-- BARU BUAT EDIT PROFIL SHOWROOM
+    nama_showroom: Optional[str] = None
+    alamat: Optional[str] = None
+    deskripsi: Optional[str] = None
+    logo: Optional[str] = None
+    wa_number: Optional[str] = None
+
 # ========== CAR ==========
 class CarCreate(BaseModel):
-    showroom_id: int
+    # showroom_id: int <-- HAPUS INI BRO. Nanti diisi otomatis dari token JWT
     nama_mobil: str
     merek: Optional[str] = None
     tahun: Optional[int] = None
@@ -79,6 +100,7 @@ class CarCreate(BaseModel):
 
 class Car(CarCreate):
     id: int
+    showroom_id: int # <-- PINDAH KE SINI BIAR PAS RESPONSE KELIATAN
     created_at: datetime
     class Config:
         from_attributes = True
