@@ -28,9 +28,9 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
-class RegisterShowroomRequest(BaseModel): # <-- INI YG KURANG TADI
+class RegisterShowroomRequest(BaseModel): # <-- BUAT PUBLIC DAFTAR
     nama_showroom: str = Field(..., min_length=3)
-    subdomain: str = Field(..., min_length=3, regex="^[a-z0-9-]+$")
+    subdomain: str = Field(..., min_length=3, pattern="^[a-z0-9-]+$") # <-- GANTI regex -> pattern
     alamat: Optional[str] = None
     wa_number: str
     email: EmailStr
@@ -38,6 +38,7 @@ class RegisterShowroomRequest(BaseModel): # <-- INI YG KURANG TADI
 
 # ========== SHOWROOM ==========
 class ShowroomCreate(BaseModel):
+    """Khusus admin yg daftarin manual"""
     nama_showroom: str
     subdomain: str
     wa_number: str
@@ -57,12 +58,12 @@ class ShowroomResponse(BaseModel):
     wa_number: str
     paket: PaketEnum
     status_bayar: StatusBayarEnum
-    status: ShowroomStatusEnum # <-- TAMBAH INI BIAR FE TAU STATUS APPROVE
+    status: ShowroomStatusEnum # <-- BIAR FE TAU STATUS APPROVE
 
     class Config:
         from_attributes = True
 
-class ShowroomUpdate(BaseModel): # <-- BARU BUAT EDIT PROFIL SHOWROOM
+class ShowroomUpdate(BaseModel): # <-- BUAT EDIT PROFIL SHOWROOM
     nama_showroom: Optional[str] = None
     alamat: Optional[str] = None
     deskripsi: Optional[str] = None
@@ -71,7 +72,7 @@ class ShowroomUpdate(BaseModel): # <-- BARU BUAT EDIT PROFIL SHOWROOM
 
 # ========== CAR ==========
 class CarCreate(BaseModel):
-    # showroom_id: int <-- HAPUS INI BRO. Nanti diisi otomatis dari token JWT
+    # showroom_id: int <-- HAPUS. Nanti diisi otomatis dari token JWT
     nama_mobil: str
     merek: Optional[str] = None
     tahun: Optional[int] = None
@@ -98,7 +99,7 @@ class CarCreate(BaseModel):
     no_wa_showroom: Optional[str] = None
     status: StatusEnum = StatusEnum.pending
 
-class Car(CarCreate):
+class CarResponse(CarCreate): # <-- GANTI NAMA JADI CarResponse biar gak bentrok
     id: int
     showroom_id: int # <-- PINDAH KE SINI BIAR PAS RESPONSE KELIATAN
     created_at: datetime
