@@ -18,6 +18,7 @@ class ShowroomCreate(BaseModel):
     paket: str = "Basic"
     status_bayar: str = "aktif"
     tgl_expired: date | None = None
+    status: str = "aktif" # <--- TAMBAHIN INI biar default aktif
 
 class ShowroomSchema(ShowroomCreate):
     id: int
@@ -25,7 +26,21 @@ class ShowroomSchema(ShowroomCreate):
     class Config:
         from_attributes = True
 
-# 2. ENDPOINT BUAT DAFTAR - INI YG KURANG
+
+# FUNCTION PALANG PINTU
+def get_active_showroom(subdomain: str, db: Session = Depends(get_db)):
+    showroom = db.query(Showroom).filter(Showroom.subdomain == subdomain).first()
+    if not showroom:
+        raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
+    
+    # INI KUNCINYA BRO
+    if showroom.status == "suspend":
+        raise HTTPException(status_code=403, detail="Akun showroom ini sedang disuspend karena belum bayar")
+    
+    return showroom
+
+
+# 2. ENDPOINT BUAT DAFTAR
 @router.post("/", response_model=ShowroomSchema)
 def create_showroom(showroom: ShowroomCreate, db: Session = Depends(get_db)):
     # Cek subdomain biar gak double
@@ -34,17 +49,20 @@ def create_showroom(showroom: ShowroomCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Subdomain sudah dipakai")
     
     new_showroom = Showroom(**showroom.dict())
+    # pastiin default aktif
+    if not new_showroom.status:
+        new_showroom.status = "aktif"
+        
     db.add(new_showroom)
     db.commit()
     db.refresh(new_showroom)
     return new_showroom
 
-# 3. KODE LU YG LAMA - BUAT LIAT HALAMAN PUBLIK
+
+# 3. KODE HALAMAN PUBLIK - UDAH DIKASIH PALANG
 @router.get("/{subdomain}")
-def get_public_showroom(subdomain: str, db: Session = Depends(get_db)):
-    showroom = db.query(Showroom).filter(Showroom.subdomain == subdomain).first()
-    if not showroom:
-        raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
+def get_public_showroom(showroom = Depends(get_active_showroom), db: Session = Depends(get_db)):
+    # kalau lolos Depends berarti status = aktif
     
     cars = db.query(Car).filter(Car.showroom_id == showroom.id, Car.status == 'approved').all()
     
@@ -54,5 +72,7 @@ def get_public_showroom(subdomain: str, db: Session = Depends(get_db)):
         "wa_number": showroom.wa_number,
         "logo": showroom.logo,
         "paket": showroom.paket,
+        "status_bayar": showroom.status_bayar,
+        "status": showroom.status, # <--- biar bisa dilacak di frontend
         "cars": cars
     }
