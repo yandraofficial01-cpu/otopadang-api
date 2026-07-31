@@ -34,7 +34,7 @@ def register_showroom_manual(showroom: schemas.ShowroomCreate, db: Session = Dep
     # 3. Hash password
     hashed_password = hash_password(showroom.password)
 
-    # 4. Buat Showroom - LANGSUNG APPROVED
+    # 4. Buat Showroom - LANGSUNG APPROVED + AKTIF
     new_showroom = models.Showroom(
         nama_showroom=showroom.nama_showroom,
         subdomain=showroom.subdomain,
@@ -42,7 +42,9 @@ def register_showroom_manual(showroom: schemas.ShowroomCreate, db: Session = Dep
         alamat=showroom.alamat,
         deskripsi=showroom.deskripsi,
         logo=showroom.logo,
-        status="approved" # <-- KUNCI: Langsung approved karena kamu yg daftarin
+        status="approved", # <-- untuk approval
+        status_bayar="aktif", # <-- TAMBAH INI untuk billing
+        status_akun="aktif" # <-- KALO ADA KOLOM INI PAKE INI. KALO GA ADA PAKE status_bayar
     )
     db.add(new_showroom)
     db.commit()
@@ -59,11 +61,13 @@ def register_showroom_manual(showroom: schemas.ShowroomCreate, db: Session = Dep
 
     return new_showroom
 
+
 @router.get("/showrooms-pending", response_model=list[schemas.ShowroomResponse])
 def get_showrooms_pending(db: Session = Depends(get_db), current_user: dict = Depends(require_admin)):
     """Menu buat liat showroom yg daftar dari public"""
     showrooms = db.query(models.Showroom).filter(models.Showroom.status == "pending").all()
     return showrooms
+
 
 @router.put("/showrooms/{showroom_id}/approve")
 def approve_showroom(showroom_id: int, db: Session = Depends(get_db), current_user: dict = Depends(require_admin)):
@@ -76,9 +80,11 @@ def approve_showroom(showroom_id: int, db: Session = Depends(get_db), current_us
         raise HTTPException(status_code=400, detail="Showroom sudah di approve")
         
     showroom.status = "approved"
+    showroom.status_bayar = "aktif" # <-- pas approve langsung aktif
     db.commit()
     db.refresh(showroom)
     return {"message": f"Showroom {showroom.nama_showroom} berhasil di approve"}
+
 
 @router.put("/showrooms/{showroom_id}/reject")
 def reject_showroom(showroom_id: int, db: Session = Depends(get_db), current_user: dict = Depends(require_admin)):
@@ -90,6 +96,33 @@ def reject_showroom(showroom_id: int, db: Session = Depends(get_db), current_use
     showroom.status = "rejected"
     db.commit()
     return {"message": f"Showroom {showroom.nama_showroom} ditolak"}
+
+
+# ========== 2 TOMBOL BARU INI ==========
+@router.put("/showrooms/{showroom_id}/suspend")
+def suspend_showroom(showroom_id: int, db: Session = Depends(get_db), current_user: dict = Depends(require_admin)):
+    """Tombol SUSPEND. Buat matiin web showroom"""
+    showroom = db.query(models.Showroom).filter(models.Showroom.id == showroom_id).first()
+    if not showroom: 
+        raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
+        
+    showroom.status_bayar = "belum_bayar" # <-- ini yg dibaca middleware
+    db.commit()
+    return {"message": f"Showroom {showroom.nama_showroom} berhasil di SUSPEND"}
+
+
+@router.put("/showrooms/{showroom_id}/activate")
+def activate_showroom(showroom_id: int, db: Session = Depends(get_db), current_user: dict = Depends(require_admin)):
+    """Tombol AKTIFKAN. Buat nyalain lagi web showroom"""
+    showroom = db.query(models.Showroom).filter(models.Showroom.id == showroom_id).first()
+    if not showroom: 
+        raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
+        
+    showroom.status_bayar = "aktif" # <-- ini yg dibaca middleware
+    db.commit()
+    return {"message": f"Showroom {showroom.nama_showroom} berhasil di AKTIFKAN"}
+# =======================================
+
 
 @router.get("/mobil") # <-- Admin bisa liat semua mobil
 def get_all_mobil_admin(db: Session = Depends(get_db), current_user: dict = Depends(require_admin)):
