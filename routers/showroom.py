@@ -1,81 +1,51 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
-from pydantic import BaseModel
-from datetime import date, datetime
-
 from database import get_db
-from models import Showroom, Car
+from models import Showroom, UserShowroom, Car # TAMBAH CAR
+import schemas 
+from routers.auth_router import ADMIN_EMAILS, get_current_user # <--- TAMBAH get_current_user
 
-router = APIRouter(tags=["Showroom"])
+router = APIRouter(prefix="/showroom", tags=["Showroom"])
 
-# 1. Schema buat POST daftar showroom
-class ShowroomCreate(BaseModel):
-    nama_showroom: str
-    subdomain: str
-    logo: str | None = None
-    wa_number: str
-    paket: str = "Basic"
-    status_bayar: str = "aktif" # <--- ini buat kontrol suspend
-    tgl_expired: date | None = None
-    status: str = "approved" # <--- ini buat kontrol approval
+# PALANG PINTU KHUS ADMIN
+def require_admin(current_user: UserShowroom = Depends(get_current_user)):
+    if current_user.email not in ADMIN_EMAILS:
+        raise HTTPException(status_code=403, detail="Hanya Admin yg bisa")
+    return current_user
 
-class ShowroomSchema(ShowroomCreate):
-    id: int
-    created_at: datetime
-    class Config:
-        from_attributes = True
-
-# FUNCTION PALANG PINTU
+# PALANG PINTU BUAT HALAMAN PUBLIK
 def get_active_showroom(subdomain: str, db: Session = Depends(get_db)):
     showroom = db.query(Showroom).filter(Showroom.subdomain == subdomain).first()
-    if not showroom:
-        raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
-    
-    # CEK 1: UDAH APPROVE BELUM
-    if showroom.status != "approved":
-        raise HTTPException(status_code=403, detail="Showroom belum di approve admin")
-    
-    # CEK 2: INI KUNCINYA - CEK BILLING
-    if showroom.status_bayar == "belum_bayar": # <--- UDAH DIUBAH
-        raise HTTPException(status_code=403, detail="Akun showroom ini sedang disuspend karena belum bayar")
-    
+    if not showroom: raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
+    if showroom.status != "approved": raise HTTPException(status_code=403, detail="Showroom belum di approve admin")
+    if showroom.status_bayar == "expired": # UDAH SAMA KAYA SCHEMA
+        raise HTTPException(status_code=403, detail="Akun showroom ini sedang disuspend")
     return showroom
 
-# 2. ENDPOINT BUAT DAFTAR
-@router.post("/", response_model=ShowroomSchema)
-def create_showroom(showroom: ShowroomCreate, db: Session = Depends(get_db)):
-    # Cek subdomain biar gak double
+# 1. ENDPOINT BUAT ADMIN DAFTARIN MANUAL - UDAH DIKUNCI
+@router.post("/", response_model=schemas.ShowroomResponse)
+def create_showroom(showroom: schemas.ShowroomCreate, db: Session = Depends(get_db), admin = Depends(require_admin)):
     cek = db.query(Showroom).filter(Showroom.subdomain == showroom.subdomain).first()
-    if cek:
-        raise HTTPException(status_code=400, detail="Subdomain sudah dipakai")
+    if cek: raise HTTPException(status_code=400, detail="Subdomain sudah dipakai")
     
     new_showroom = Showroom(**showroom.dict())
-    # pastiin default
-    if new_showroom.status != "approved":
-        new_showroom.status = "pending" # daftar public = pending dulu
-    if not new_showroom.status_bayar:
-        new_showroom.status_bayar = "aktif"
-        
     db.add(new_showroom)
     db.commit()
     db.refresh(new_showroom)
     return new_showroom
 
-# 3. KODE HALAMAN PUBLIK - UDAH DIKASIH PALANG
+# 2. ENDPOINT BUAT ADMIN APPROVE
+@router.put("/{id}/approve", response_model=schemas.ShowroomResponse) # <--- TAMBAHIN INI
+def approve_showroom(id: int, db: Session = Depends(get_db), admin = Depends(require_admin)):
+    showroom = db.query(Showroom).filter(Showroom.id == id).first()
+    if not showroom: raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
+    showroom.status = "approved"
+    db.commit()
+    db.refresh(showroom)
+    return showroom
+
+# 3. KODE HALAMAN PUBLIK
 @router.get("/{subdomain}")
 def get_public_showroom(showroom = Depends(get_active_showroom), db: Session = Depends(get_db)):
-    # kalau lolos Depends berarti status = approved DAN status_bayar = aktif
-    
     cars = db.query(Car).filter(Car.showroom_id == showroom.id, Car.status == 'approved').all()
-    
-    return {
-        "id": showroom.id,
-        "nama_showroom": showroom.nama_showroom,
-        "wa_number": showroom.wa_number,
-        "logo": showroom.logo,
-        "paket": showroom.paket,
-        "status_bayar": showroom.status_bayar,
-        "status": showroom.status,
-        "cars": cars
-    }
+    return {**schemas.ShowroomResponse.from_orm(showroom).dict(), "cars": cars}
