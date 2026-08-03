@@ -1,19 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from passlib.context import CryptContext
+import bcrypt  # <-- GANTI DARI passlib
 import models, schemas 
 from database import get_db
 from dependencies import require_admin # <-- WAJIB IMPORT INI
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def hash_password(password: str):
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 def verify_password(plain_password: str, hashed_password: str):
-    return pwd_context.verify(plain_password, hashed_password)
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+
 
 @router.post("/register-showroom", response_model=schemas.ShowroomResponse)
 def register_showroom_manual(showroom: schemas.ShowroomCreate, db: Session = Depends(get_db), current_user: dict = Depends(require_admin)):
