@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from database import get_db
 from models import UserShowroom, Showroom
-from routers.admin_router import verify_password, hash_password
+import bcrypt  # <-- TAMBAH INI AJA
+from routers.admin_router import hash_password  # <-- HAPUS verify_password dari sini
 from dependencies import create_access_token
 import schemas
 import urllib.parse
@@ -11,6 +12,11 @@ router = APIRouter(prefix="/auth", tags=["Auth Showroom"])
 
 ADMIN_EMAILS = ["admin@otopadang.com", "yandraofficial01@gmail.com"]
 WA_ADMIN = "628979879518" # <-- NOMOR WA KAMU
+
+# <-- TAMBAHIN FUNGSI INI AJA DI SINI
+def verify_password(plain_password, hashed_password):
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+
 
 @router.post("/register-showroom", status_code=201)
 def register_showroom(data: schemas.RegisterShowroomRequest, db: Session = Depends(get_db)):
