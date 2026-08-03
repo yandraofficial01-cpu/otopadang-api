@@ -1,24 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
-from models import Showroom, UserShowroom, Car # TAMBAH CAR
+from models import Showroom, UserShowroom, Car
 import schemas 
-from routers.auth_router import ADMIN_EMAILS, get_current_user # <--- TAMBAH get_current_user
+from routers.auth_router import ADMIN_EMAILS # Cuma ambil ADMIN_EMAILS dari sini
+from dependencies import get_current_user, require_admin # AMBIL DARI SINI
 
 router = APIRouter(prefix="/showroom", tags=["Showroom"])
-
-# PALANG PINTU KHUS ADMIN
-def require_admin(current_user: UserShowroom = Depends(get_current_user)):
-    if current_user.email not in ADMIN_EMAILS:
-        raise HTTPException(status_code=403, detail="Hanya Admin yg bisa")
-    return current_user
 
 # PALANG PINTU BUAT HALAMAN PUBLIK
 def get_active_showroom(subdomain: str, db: Session = Depends(get_db)):
     showroom = db.query(Showroom).filter(Showroom.subdomain == subdomain).first()
     if not showroom: raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
     if showroom.status != "approved": raise HTTPException(status_code=403, detail="Showroom belum di approve admin")
-    if showroom.status_bayar == "expired": # UDAH SAMA KAYA SCHEMA
+    if showroom.status_bayar == "expired":
         raise HTTPException(status_code=403, detail="Akun showroom ini sedang disuspend")
     return showroom
 
@@ -35,7 +30,7 @@ def create_showroom(showroom: schemas.ShowroomCreate, db: Session = Depends(get_
     return new_showroom
 
 # 2. ENDPOINT BUAT ADMIN APPROVE
-@router.put("/{id}/approve", response_model=schemas.ShowroomResponse) # <--- TAMBAHIN INI
+@router.put("/{id}/approve", response_model=schemas.ShowroomResponse)
 def approve_showroom(id: int, db: Session = Depends(get_db), admin = Depends(require_admin)):
     showroom = db.query(Showroom).filter(Showroom.id == id).first()
     if not showroom: raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
