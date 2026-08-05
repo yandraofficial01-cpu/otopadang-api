@@ -26,10 +26,9 @@ app = FastAPI(
 origins = [
     "http://localhost:3000",            
     "http://localhost:5173",            # Vite default
-    "https://otpadang.com",             
-    "https://www.otpadang.com",         
+    "https://otopadang.com",             
+    "https://www.otopadang.com",         
     "https://otopadang-frontend.vercel.app",
-    "https://frontend.vercel.app",      # Sesuai SS kamu
 ]
 
 app.add_middleware(
