@@ -15,20 +15,20 @@ class Showroom(Base):
     paket = Column(Enum('Basic', 'Premium'), default='Basic')
     status_bayar = Column(Enum('aktif', 'expired'), default='aktif')
     
-    # INI TAMBAHAN PENTING BUAT APPROVE
+    # BUAT APPROVE ADMIN
     status = Column(Enum('pending', 'approved', 'rejected'), default='pending', nullable=False) 
     
     tgl_expired = Column(Date)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     
-    cars = relationship("Car", back_populates="showroom", cascade="all, delete")
-    houses = relationship("House", back_populates="showroom", cascade="all, delete") # <-- TAMBAH INI
-    users = relationship("UserShowroom", back_populates="showroom", cascade="all, delete")
+    cars = relationship("Car", back_populates="showroom", cascade="all, delete-orphan")
+    users = relationship("UserShowroom", back_populates="showroom", cascade="all, delete-orphan")
+    # RELASI HOUSE DIHAPUS
 
 class UserShowroom(Base):
     __tablename__ = "users_showroom"
     id = Column(Integer, primary_key=True, index=True)
-    showroom_id = Column(Integer, ForeignKey("showrooms.id", ondelete="CASCADE"))
+    showroom_id = Column(Integer, ForeignKey("showrooms.id", ondelete="CASCADE"), nullable=True) # nullable=True biar admin pusat bisa NULL
     email = Column(String(100), unique=True, nullable=False, index=True)
     password = Column(String(255), nullable=False)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
@@ -64,7 +64,6 @@ class Car(Base):
     video_url = Column(String(255))
     no_wa_showroom = Column(String(20))
     
-    # Status ini buat status mobilnya ya, bukan showroom
     status = Column(Enum('pending', 'approved', 'ready', 'sold'), default='pending')
     
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
@@ -74,8 +73,7 @@ class House(Base):
     __tablename__ = "houses"
     id = Column(Integer, primary_key=True, index=True)
     
-    # INI TAMBAHAN PENTING BIAR BISA DIPISAH PER SHOWROOM
-    showroom_id = Column(Integer, ForeignKey("showrooms.id", ondelete="CASCADE"), nullable=True) # nullable=True biar rumah developer punya kamu gak wajib isi
+    # KOLOM SHOWROOM_ID DIHAPUS TOTAL
     
     nama_rumah = Column(String(100))
     tipe = Column(String(50))
@@ -99,9 +97,9 @@ class House(Base):
     video_url = Column(String(255))
     wa_number = Column(String(20), default='628979879518')
     status = Column(Enum('available', 'sold'), default='available')
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
-    # TAMBAH RELASI INI
-    showroom = relationship("Showroom", back_populates="houses")
+    # RELASI SHOWROOM DIHAPUS
 
 class LeadRumah(Base):
     __tablename__ = "leads_rumah"
@@ -114,3 +112,6 @@ class LeadRumah(Base):
     nilai_fee = Column(BigInteger)
     tgl_akad = Column(Date)
     catatan = Column(Text)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    
+    house = relationship("House")
