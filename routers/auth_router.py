@@ -1,16 +1,23 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer # TAMBAH INI
+from jose import JWTError, jwt # TAMBAH INI
 from sqlalchemy.orm import Session
 from database import get_db
 from models import UserShowroom, Showroom
 import bcrypt
-from dependencies import create_access_token # Pastiin ini import dari dependencies.py
+from dependencies import create_access_token
 import schemas
+import os # TAMBAH INI
 
 router = APIRouter(prefix="/auth", tags=["Auth Showroom"])
 
-# WAJIB ADA INI BIAR ADMIN BISA LEWAT
 ADMIN_EMAILS = ["admin@otopadang.com", "yandraofficial01@gmail.com"] 
 WA_ADMIN = "628979879518"
+
+# 1. TAMBAHIN 3 BARIS INI - WAJIB BUAT ADMIN
+SECRET_KEY = os.getenv("SECRET_KEY", "rahasia-super-penting-ganti-di-railway") 
+ALGORITHM = "HS256"
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 def hash_password(password: str):
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -18,76 +25,30 @@ def hash_password(password: str):
 def verify_password(plain_password: str, hashed_password: str):
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
+# 2. TAMBAHIN FUNCTION INI PALING BAWAH - INI YG DICARI ADMIN_ROUTER
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Tidak bisa validasi token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("email") # lu bikin token pake "email"
+        if email is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    
+    user = db.query(UserShowroom).filter(UserShowroom.email == email).first()
+    if user is None:
+        raise credentials_exception
+    return user
+
 @router.post("/register", response_model=schemas.ShowroomResponse)
 def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = Depends(get_db)):
-    """Buat showroom daftar dari public. Status pending"""
-    db_showroom = db.query(Showroom).filter(Showroom.subdomain == showroom.subdomain).first()
-    if db_showroom:
-        raise HTTPException(status_code=400, detail="Subdomain sudah dipakai")
-
-    db_user = db.query(UserShowroom).filter(UserShowroom.email == showroom.email).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email sudah terdaftar")
-
-    hashed_password = hash_password(showroom.password)
-
-    new_showroom = Showroom(
-        nama_showroom=showroom.nama_showroom,
-        subdomain=showroom.subdomain,
-        wa_number=showroom.wa_number,
-        alamat=showroom.alamat,
-        status="pending",
-        status_bayar="expired", 
-        status_akun="nonaktif",
-        paket="Basic"
-    )
-    db.add(new_showroom)
-    db.commit()
-    db.refresh(new_showroom)
-
-    new_user = UserShowroom(
-        showroom_id=new_showroom.id,
-        email=showroom.email,
-        password=hashed_password
-    )
-    db.add(new_user)
-    db.commit()
-    return new_showroom
+    ... # kode lu yg lama biarin
 
 @router.post("/login")
 def login_showroom(request: schemas.LoginRequest, db: Session = Depends(get_db)):
-    """Login buat admin dan showroom"""
-    user = db.query(UserShowroom).filter(UserShowroom.email == request.email).first()
-    if not user or not verify_password(request.password, user.password):
-        raise HTTPException(status_code=401, detail="Email atau password salah")
-
-    role = "admin" if user.email in ADMIN_EMAILS else "showroom"
-    showroom_id = None
-
-    # KALAU BUKAN ADMIN, BARU CEK STATUS SHOWROOM
-    if role != "admin":
-        showroom = db.query(Showroom).filter(Showroom.id == user.showroom_id).first()
-        if not showroom:
-            raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
-        if showroom.status != "approved":
-            raise HTTPException(status_code=403, detail="Akun showroom belum di approve admin")
-        if showroom.status_bayar != "aktif":
-            raise HTTPException(status_code=403, detail="Paket showroom sudah expired")
-        showroom_id = showroom.id
-
-    # PENTING: HARUS ADA user_id DI DALAM TOKEN
-    access_token = create_access_token(
-        data={
-            "user_id": user.id, 
-            "email": user.email, 
-            "role": role, 
-            "showroom_id": showroom_id
-        }
-    )
-
-    return {
-        "access_token": access_token, 
-        "token_type": "bearer",
-        "role": role,
-        "email": user.email
-    }
+    ... # kode lu yg lama biarin
