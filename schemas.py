@@ -10,7 +10,7 @@ class StatusEnum(str, Enum):
     ready = "ready"
     sold = "sold"
 
-class ShowroomStatusEnum(str, Enum): # <-- BARU BUAT STATUS SHOWROOM
+class ShowroomStatusEnum(str, Enum):
     pending = "pending"
     approved = "approved"
     rejected = "rejected"
@@ -28,9 +28,9 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
-class RegisterShowroomRequest(BaseModel): # <-- BUAT PUBLIC DAFTAR
+class RegisterShowroomRequest(BaseModel):
     nama_showroom: str = Field(..., min_length=3)
-    subdomain: str = Field(..., min_length=3, pattern="^[a-z0-9-]+$") # <-- GANTI regex -> pattern
+    subdomain: str = Field(..., min_length=3, pattern="^[a-z0-9-]+$")
     alamat: Optional[str] = None
     wa_number: str
     email: EmailStr
@@ -58,21 +58,20 @@ class ShowroomResponse(BaseModel):
     wa_number: str
     paket: PaketEnum
     status_bayar: StatusBayarEnum
-    status: ShowroomStatusEnum # <-- BIAR FE TAU STATUS APPROVE
+    status: ShowroomStatusEnum
 
     class Config:
         from_attributes = True
 
-class ShowroomUpdate(BaseModel): # <-- BUAT EDIT PROFIL SHOWROOM
+class ShowroomUpdate(BaseModel):
     nama_showroom: Optional[str] = None
     alamat: Optional[str] = None
     deskripsi: Optional[str] = None
     logo: Optional[str] = None
     wa_number: Optional[str] = None
 
-# ========== CAR ==========
+# ========== MOBIL / CAR ==========
 class CarCreate(BaseModel):
-    # showroom_id: int <-- HAPUS. Nanti diisi otomatis dari token JWT
     nama_mobil: str
     merek: Optional[str] = None
     tahun: Optional[int] = None
@@ -99,9 +98,56 @@ class CarCreate(BaseModel):
     no_wa_showroom: Optional[str] = None
     status: StatusEnum = StatusEnum.pending
 
-class CarResponse(CarCreate): # <-- GANTI NAMA JADI CarResponse biar gak bentrok
+class CarResponse(CarCreate):
     id: int
-    showroom_id: int # <-- PINDAH KE SINI BIAR PAS RESPONSE KELIATAN
+    showroom_id: int
     created_at: datetime
+    class Config:
+        from_attributes = True
+
+# ALIAS BIAR GA GANTI ADMIN_ROUTER
+MobilCreate = CarCreate
+MobilResponse = CarResponse
+
+# ========== RUMAH ==========
+class RumahBase(BaseModel):
+    judul: str
+    alamat: str
+    harga: int
+    luas_tanah: int
+    luas_bangunan: int
+    kamar_tidur: int
+    kamar_mandi: int
+    deskripsi: Optional[str] = None
+    foto: Optional[str] = None
+    showroom_id: Optional[int] = None
+    status: StatusEnum = StatusEnum.pending
+
+class RumahCreate(RumahBase):
+    pass
+
+class RumahResponse(RumahBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# ========== BLOG ==========
+class BlogBase(BaseModel):
+    judul: str
+    slug: str
+    konten: str
+    gambar: Optional[str] = None
+    status: str = "published"
+
+class BlogCreate(BlogBase):
+    pass
+
+class BlogResponse(BlogBase):
+    id: int
+    author_id: int
+    created_at: datetime
+
     class Config:
         from_attributes = True
