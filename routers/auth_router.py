@@ -3,12 +3,12 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import UserShowroom, Showroom
 import bcrypt
-from dependencies import create_access_token
+from dependencies import create_access_token # Pastiin ini import dari dependencies.py
 import schemas
 
 router = APIRouter(prefix="/auth", tags=["Auth Showroom"])
 
-# WAJIB ADA INI BIAR showroom.py GA ERROR
+# WAJIB ADA INI BIAR ADMIN BISA LEWAT
 ADMIN_EMAILS = ["admin@otopadang.com", "yandraofficial01@gmail.com"] 
 WA_ADMIN = "628979879518"
 
@@ -61,25 +61,33 @@ def login_showroom(request: schemas.LoginRequest, db: Session = Depends(get_db))
     if not user or not verify_password(request.password, user.password):
         raise HTTPException(status_code=401, detail="Email atau password salah")
 
-    showroom = db.query(Showroom).filter(Showroom.id == user.showroom_id).first()
-    if not showroom:
-        raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
-    
-    if showroom.status != "approved":
-        raise HTTPException(status_code=403, detail="Akun showroom belum di approve admin")
-    
-    if showroom.status_bayar != "aktif":
-        raise HTTPException(status_code=403, detail="Paket showroom sudah expired")
-
     role = "admin" if user.email in ADMIN_EMAILS else "showroom"
+    showroom_id = None
 
+    # KALAU BUKAN ADMIN, BARU CEK STATUS SHOWROOM
+    if role != "admin":
+        showroom = db.query(Showroom).filter(Showroom.id == user.showroom_id).first()
+        if not showroom:
+            raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
+        if showroom.status != "approved":
+            raise HTTPException(status_code=403, detail="Akun showroom belum di approve admin")
+        if showroom.status_bayar != "aktif":
+            raise HTTPException(status_code=403, detail="Paket showroom sudah expired")
+        showroom_id = showroom.id
+
+    # PENTING: HARUS ADA user_id DI DALAM TOKEN
     access_token = create_access_token(
-        data={"sub": user.email, "role": role, "showroom_id": showroom.id}
+        data={
+            "user_id": user.id, 
+            "email": user.email, 
+            "role": role, 
+            "showroom_id": showroom_id
+        }
     )
 
     return {
         "access_token": access_token, 
         "token_type": "bearer",
         "role": role,
-        "showroom": showroom
+        "email": user.email
     }
