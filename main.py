@@ -25,10 +25,11 @@ app = FastAPI(
 # 1. SETTING CORS - PENTING BUAT FE VERCEL
 origins = [
     "http://localhost:3000",            
-    "http://localhost:5173",            # Vite default
+    "http://localhost:5173",            
     "https://otopadang.com",             
     "https://www.otopadang.com",         
-    "https://otopadang-frontend.vercel.app",
+    "https://otopadang-frontend.vercel.app", # domain vercel yg lu set manual
+    "https://frontend.vercel.app",           # <-- TAMBAHIN INI. Ini yg di SS lu
 ]
 
 app.add_middleware(
