@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
-from models import Showroom, UserShowroom, Car
+from models import Showroom, User, Car  # UDAH GANTI INI
 import schemas 
 from routers.auth_router import ADMIN_EMAILS # Cuma ambil ADMIN_EMAILS dari sini
 from dependencies import get_current_user, require_admin # AMBIL DARI SINI
@@ -23,7 +23,7 @@ def create_showroom(showroom: schemas.ShowroomCreate, db: Session = Depends(get_
     cek = db.query(Showroom).filter(Showroom.subdomain == showroom.subdomain).first()
     if cek: raise HTTPException(status_code=400, detail="Subdomain sudah dipakai")
     
-    new_showroom = Showroom(**showroom.dict())
+    new_showroom = Showroom(**showroom.model_dump()) # .dict() udah deprecated di pydantic v2, ganti .model_dump()
     db.add(new_showroom)
     db.commit()
     db.refresh(new_showroom)
