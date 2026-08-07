@@ -22,18 +22,26 @@ class Showroom(Base):
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     
     cars = relationship("Car", back_populates="showroom", cascade="all, delete-orphan")
-    users = relationship("UserShowroom", back_populates="showroom", cascade="all, delete-orphan")
+    users = relationship("User", back_populates="showroom", cascade="all, delete-orphan") # GANTI JADI User
     # RELASI HOUSE DIHAPUS
 
-class UserShowroom(Base):
-    __tablename__ = "users_showroom"
+
+class User(Base): # GANTI NAMA CLASS
+    __tablename__ = "users" # GANTI INI
     id = Column(Integer, primary_key=True, index=True)
-    showroom_id = Column(Integer, ForeignKey("showrooms.id", ondelete="CASCADE"), nullable=True) # nullable=True biar admin pusat bisa NULL
+    showroom_id = Column(Integer, ForeignKey("showrooms.id", ondelete="CASCADE"), nullable=True)
+    
+    # TAMBAHIN KOLOM YG ADA DI DB LU
+    name = Column(String(255), nullable=True)  # lu ada di DB
     email = Column(String(100), unique=True, nullable=False, index=True)
     password = Column(String(255), nullable=False)
+    phone = Column(String(50), nullable=True) # lu ada di DB
+    role = Column(String(50), default='showroom') # PENTING
+    status = Column(String(50), default='active') # PENTING
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     
     showroom = relationship("Showroom", back_populates="users")
+
 
 class Car(Base):
     __tablename__ = "cars"
@@ -69,12 +77,10 @@ class Car(Base):
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     showroom = relationship("Showroom", back_populates="cars")
 
+
 class House(Base):
     __tablename__ = "houses"
     id = Column(Integer, primary_key=True, index=True)
-    
-    # KOLOM SHOWROOM_ID DIHAPUS TOTAL
-    
     nama_rumah = Column(String(100))
     tipe = Column(String(50))
     alamat = Column(Text)
@@ -99,7 +105,6 @@ class House(Base):
     status = Column(Enum('available', 'sold'), default='available')
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
-    # RELASI SHOWROOM DIHAPUS
 
 class LeadRumah(Base):
     __tablename__ = "leads_rumah"
