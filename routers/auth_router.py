@@ -3,13 +3,16 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from database import get_db
-from models import User, Showroom  # UDAH BENER
+from models import User, Showroom  # pake User bukan UserShowroom
 import bcrypt
 from dependencies import create_access_token
 import schemas
 import os
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+ADMIN_EMAILS = ["admin@otopadang.com", "yandraofficial01@gmail.com"] 
+WA_ADMIN = "628979879518"
 
 SECRET_KEY = os.getenv("SECRET_KEY", "rahasia-super-penting-ganti-di-railway") 
 ALGORITHM = "HS256"
@@ -44,7 +47,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 @router.post("/register", response_model=schemas.ShowroomResponse)
 def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = Depends(get_db)):
-    # 1. CEK EMAIL UDAH ADA BELUM
+    # 1. CEK EMAIL
     existing_user = db.query(User).filter(User.email == showroom.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email sudah terdaftar")
@@ -61,16 +64,16 @@ def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = D
     db.commit()
     db.refresh(new_showroom)
 
-    # 3. HASH PASSWORD
+    # 3. BUAT USER - HANYA KOLOM YANG ADA DI DB
     hashed_password = hash_password(showroom.password)
-
-    # 4. BUAT USER BARU - HAPUS name & phone
     new_user = User(
-        showroom_id=new_showroom.id, # DIISI ID SHOWROOM
-        email=showroom.email,
-        password=hashed_password,
-        role='showroom',
-        status='pending' # ngikutin default DB lu
+        showroom_id=new_showroom.id,  # ada
+        email=showroom.email,         # ada
+        password=hashed_password,     # ada
+        role='showroom',              # ada
+        status='pending'              # ada
+        # name=...   <-- HAPUS, gak ada di DB
+        # phone=...  <-- HAPUS, gak ada di DB
     )
     db.add(new_user)
     db.commit()
@@ -87,7 +90,7 @@ def login_showroom(request: schemas.LoginRequest, db: Session = Depends(get_db))
     if not verify_password(request.password, user.password):
         raise HTTPException(status_code=400, detail="Email atau password salah")
     
-    if user.status != 'pending' and user.status != 'active': # biar pending juga bisa login
+    if user.status not in ['pending', 'active']:
         raise HTTPException(status_code=400, detail="Akun belum aktif")
 
     access_token = create_access_token(data={"email": user.email, "role": user.role})
@@ -98,7 +101,7 @@ def login_showroom(request: schemas.LoginRequest, db: Session = Depends(get_db))
         "user": {
             "id": user.id,
             "email": user.email,
-            # "name": user.name,  <-- HAPUS INI
+            # "name": user.name,  <-- HAPUS, gak ada di DB
             "role": user.role,
             "showroom_id": user.showroom_id
         }
