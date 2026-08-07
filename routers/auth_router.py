@@ -18,11 +18,19 @@ SECRET_KEY = os.getenv("SECRET_KEY", "rahasia-super-penting-ganti-di-railway")
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
+
 def hash_password(password: str):
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
+
 def verify_password(plain_password: str, hashed_password: str):
+    # FIX PENTING BUAT TiDB: bcrypt python gak support $2b$
+    # Jadi kita ganti ke $2a$ dulu sebelum verify
+    if hashed_password.startswith("$2b$"):
+        hashed_password = hashed_password.replace("$2b$", "$2a$")
+    
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
@@ -43,6 +51,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
     return user
 
+
 @router.post("/register", response_model=schemas.ShowroomResponse)
 def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = Depends(get_db)):
     # CEK EMAIL UDAH ADA BELUM
@@ -60,17 +69,20 @@ def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = D
         password=hashed_password,
         phone=showroom.phone,
         role='showroom',  # default showroom
+        status='active', # <-- TAMBAHIN INI BIAR LANGSUNG AKTIF
         showroom_id=None  # nanti diisi pas approve
     )
     db.add(new_user)
+
     db.commit()
     db.refresh(new_user)
 
     return new_user
 
+
 @router.post("/login")
 def login_showroom(request: schemas.LoginRequest, db: Session = Depends(get_db)):
-    # 1. CARI USER CUMA DARI EMAIL AJA - GA USAH FILTER ROLE/STATUS
+    # 1. CARI USER DARI EMAIL
     user = db.query(UserShowroom).filter(
         UserShowroom.email == request.email
     ).first()
@@ -87,8 +99,15 @@ def login_showroom(request: schemas.LoginRequest, db: Session = Depends(get_db))
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email atau password salah"
         )
+    
+    # 3. CEK STATUS AKTIF
+    if user.status != 'active':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Akun belum aktif"
+        )
 
-    # 3. BUAT TOKEN + KIRIM ROLE JUGA
+    # 4. BUAT TOKEN + KIRIM ROLE JUGA
     access_token = create_access_token(data={
         "email": user.email,
         "role": user.role
