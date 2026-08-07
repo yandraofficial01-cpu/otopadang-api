@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from database import get_db
-from models import User, Showroom  # pake User bukan UserShowroom
+from models import User, Showroom
 import bcrypt
 from dependencies import create_access_token
 import schemas
@@ -45,14 +45,19 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
     return user
 
-@router.post("/register", response_model=schemas.ShowroomResponse)
+@router.post("/register", response_model=schemas.ShowroomResponse, status_code=status.HTTP_201_CREATED)
 def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = Depends(get_db)):
-    # 1. CEK EMAIL
+    # 1. CEK EMAIL UDAH ADA BELUM
     existing_user = db.query(User).filter(User.email == showroom.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email sudah terdaftar")
 
-    # 2. BUAT SHOWROOM DULU
+    # 2. CEK SUBDOMAIN UDAH DIPAKE BELUM
+    existing_subdomain = db.query(Showroom).filter(Showroom.subdomain == showroom.subdomain).first()
+    if existing_subdomain:
+        raise HTTPException(status_code=400, detail="Subdomain sudah dipakai")
+
+    # 3. BUAT SHOWROOM DULU
     new_showroom = Showroom(
         nama_showroom=showroom.nama_showroom,
         subdomain=showroom.subdomain,
@@ -64,22 +69,21 @@ def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = D
     db.commit()
     db.refresh(new_showroom)
 
-    # 3. BUAT USER - HANYA KOLOM YANG ADA DI DB
+    # 4. BUAT USER - HANYA KOLOM YANG ADA DI DB
     hashed_password = hash_password(showroom.password)
     new_user = User(
-        showroom_id=new_showroom.id,  # ada
-        email=showroom.email,         # ada
-        password=hashed_password,     # ada
-        role='showroom',              # ada
-        status='pending'              # ada
-        # name=...   <-- HAPUS, gak ada di DB
-        # phone=...  <-- HAPUS, gak ada di DB
+        showroom_id=new_showroom.id,
+        email=showroom.email,
+        password=hashed_password,
+        role='showroom',
+        status='pending'
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
     
-    return {"message": "Register berhasil", "showroom": new_showroom, "user": new_user}
+    # PENTING: LANGSUNG RETURN OBJECT SHOWROOM, JANGAN DI WRAP DICT
+    return new_showroom
 
 @router.post("/login")
 def login_showroom(request: schemas.LoginRequest, db: Session = Depends(get_db)):
@@ -101,7 +105,6 @@ def login_showroom(request: schemas.LoginRequest, db: Session = Depends(get_db))
         "user": {
             "id": user.id,
             "email": user.email,
-            # "name": user.name,  <-- HAPUS, gak ada di DB
             "role": user.role,
             "showroom_id": user.showroom_id
         }
