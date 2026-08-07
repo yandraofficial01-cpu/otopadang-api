@@ -3,13 +3,13 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from database import get_db
-from models import UserShowroom, Showroom
+from models import User, Showroom  # UDAH GANTI JADI User
 import bcrypt
 from dependencies import create_access_token
 import schemas
 import os
 
-router = APIRouter(prefix="/auth", tags=["Auth Showroom"])
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 ADMIN_EMAILS = ["admin@otopadang.com", "yandraofficial01@gmail.com"] 
 WA_ADMIN = "628979879518"
@@ -46,7 +46,8 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     except JWTError:
         raise credentials_exception
     
-    user = db.query(UserShowroom).filter(UserShowroom.email == email).first()
+    # UDAH GANTI KE User
+    user = db.query(User).filter(User.email == email).first()
     if user is None:
         raise credentials_exception
     return user
@@ -55,7 +56,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 @router.post("/register", response_model=schemas.ShowroomResponse)
 def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = Depends(get_db)):
     # CEK EMAIL UDAH ADA BELUM
-    existing_user = db.query(UserShowroom).filter(UserShowroom.email == showroom.email).first()
+    existing_user = db.query(User).filter(User.email == showroom.email).first() # UDAH GANTI
     if existing_user:
         raise HTTPException(status_code=400, detail="Email sudah terdaftar")
 
@@ -63,29 +64,25 @@ def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = D
     hashed_password = hash_password(showroom.password)
 
     # BUAT USER BARU - DEFAULT ROLE SHOWROOM
-    new_user = UserShowroom(
+    new_user = User( # UDAH GANTI
         name=showroom.name,
         email=showroom.email,
         password=hashed_password,
         phone=showroom.phone,
-        role='showroom',  # default showroom
-        status='active', # <-- TAMBAHIN INI BIAR LANGSUNG AKTIF
-        showroom_id=None  # nanti diisi pas approve
+        role='showroom',
+        status='active',
+        showroom_id=None
     )
     db.add(new_user)
-
     db.commit()
     db.refresh(new_user)
-
     return new_user
 
 
 @router.post("/login")
 def login_showroom(request: schemas.LoginRequest, db: Session = Depends(get_db)):
     # 1. CARI USER DARI EMAIL
-    user = db.query(UserShowroom).filter(
-        UserShowroom.email == request.email
-    ).first()
+    user = db.query(User).filter(User.email == request.email).first() # UDAH GANTI
 
     # 2. CEK USER ADA GAK + PASSWORD BENER GAK
     if not user:
