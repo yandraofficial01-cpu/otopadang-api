@@ -45,15 +45,34 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 @router.post("/register", response_model=schemas.ShowroomResponse)
 def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = Depends(get_db)):
-    ... # kode lu yg lama biarin
+    # CEK EMAIL UDAH ADA BELUM
+    existing_user = db.query(UserShowroom).filter(UserShowroom.email == showroom.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email sudah terdaftar")
+
+    # HASH PASSWORD
+    hashed_password = hash_password(showroom.password)
+
+    # BUAT USER BARU - DEFAULT ROLE SHOWROOM
+    new_user = UserShowroom(
+        name=showroom.name,
+        email=showroom.email,
+        password=hashed_password,
+        phone=showroom.phone,
+        role='showroom',  # default showroom
+        showroom_id=None  # nanti diisi pas approve
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return new_user
 
 @router.post("/login")
 def login_showroom(request: schemas.LoginRequest, db: Session = Depends(get_db)):
-    # 1. CARI USER CUMA DARI EMAIL + STATUS AKTIF
-    # JANGAN FILTER ROLE ATAU SHOWROOM_ID DISINI
+    # 1. CARI USER CUMA DARI EMAIL AJA - GA USAH FILTER ROLE/STATUS
     user = db.query(UserShowroom).filter(
-        UserShowroom.email == request.email,
-        UserShowroom.status == 'active'
+        UserShowroom.email == request.email
     ).first()
 
     # 2. CEK USER ADA GAK + PASSWORD BENER GAK
@@ -72,7 +91,7 @@ def login_showroom(request: schemas.LoginRequest, db: Session = Depends(get_db))
     # 3. BUAT TOKEN + KIRIM ROLE JUGA
     access_token = create_access_token(data={
         "email": user.email,
-        "role": user.role  # PENTING: biar FE tau ini admin/showroom
+        "role": user.role
     })
 
     return {
@@ -83,7 +102,6 @@ def login_showroom(request: schemas.LoginRequest, db: Session = Depends(get_db))
             "email": user.email,
             "name": user.name,
             "role": user.role,
-            "status": user.status,
             "showroom_id": user.showroom_id
         }
     }
