@@ -1,20 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer # TAMBAH INI
-from jose import JWTError, jwt # TAMBAH INI
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from database import get_db
 from models import UserShowroom, Showroom
 import bcrypt
 from dependencies import create_access_token
 import schemas
-import os # TAMBAH INI
+import os
 
 router = APIRouter(prefix="/auth", tags=["Auth Showroom"])
 
 ADMIN_EMAILS = ["admin@otopadang.com", "yandraofficial01@gmail.com"] 
 WA_ADMIN = "628979879518"
 
-# 1. TAMBAHIN 3 BARIS INI - WAJIB BUAT ADMIN
 SECRET_KEY = os.getenv("SECRET_KEY", "rahasia-super-penting-ganti-di-railway") 
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -25,7 +24,6 @@ def hash_password(password: str):
 def verify_password(plain_password: str, hashed_password: str):
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
-# 2. TAMBAHIN FUNCTION INI PALING BAWAH - INI YG DICARI ADMIN_ROUTER
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -34,7 +32,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("email") # lu bikin token pake "email"
+        email: str = payload.get("email")
         if email is None:
             raise credentials_exception
     except JWTError:
@@ -51,4 +49,41 @@ def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = D
 
 @router.post("/login")
 def login_showroom(request: schemas.LoginRequest, db: Session = Depends(get_db)):
-    ... # kode lu yg lama biarin
+    # 1. CARI USER CUMA DARI EMAIL + STATUS AKTIF
+    # JANGAN FILTER ROLE ATAU SHOWROOM_ID DISINI
+    user = db.query(UserShowroom).filter(
+        UserShowroom.email == request.email,
+        UserShowroom.status == 'active'
+    ).first()
+
+    # 2. CEK USER ADA GAK + PASSWORD BENER GAK
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email atau password salah"
+        )
+    
+    if not verify_password(request.password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email atau password salah"
+        )
+
+    # 3. BUAT TOKEN + KIRIM ROLE JUGA
+    access_token = create_access_token(data={
+        "email": user.email,
+        "role": user.role  # PENTING: biar FE tau ini admin/showroom
+    })
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "name": user.name,
+            "role": user.role,
+            "status": user.status,
+            "showroom_id": user.showroom_id
+        }
+    }
