@@ -22,8 +22,7 @@ def hash_password(password: str):
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 def verify_password(plain_password: str, hashed_password: str):
-    if hashed_password.startswith("$2b$"):
-        hashed_password = hashed_password.replace("$2b$", "$2a$")
+    # UDAH DI FIX: JANGAN DI REPLACE $2b$ JADI $2a$
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -69,11 +68,13 @@ def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = D
     db.commit()
     db.refresh(new_showroom)
 
-    # 4. BUAT USER - HANYA KOLOM YANG ADA DI DB
+    # 4. BUAT USER - UDAH TAMBAH NAME & PHONE
     hashed_password = hash_password(showroom.password)
     new_user = User(
         showroom_id=new_showroom.id,
+        name=showroom.nama_showroom,  # DITAMBAH
         email=showroom.email,
+        phone=showroom.wa_number,     # DITAMBAH
         password=hashed_password,
         role='showroom',
         status='pending'
@@ -82,7 +83,6 @@ def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = D
     db.commit()
     db.refresh(new_user)
     
-    # PENTING: LANGSUNG RETURN OBJECT SHOWROOM, JANGAN DI WRAP DICT
     return new_showroom
 
 @router.post("/login")
