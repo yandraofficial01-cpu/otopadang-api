@@ -22,7 +22,6 @@ def hash_password(password: str):
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 def verify_password(plain_password: str, hashed_password: str):
-    # UDAH DI FIX: JANGAN DI REPLACE $2b$ JADI $2a$
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -46,17 +45,14 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 @router.post("/register", response_model=schemas.ShowroomResponse, status_code=status.HTTP_201_CREATED)
 def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = Depends(get_db)):
-    # 1. CEK EMAIL UDAH ADA BELUM
     existing_user = db.query(User).filter(User.email == showroom.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email sudah terdaftar")
 
-    # 2. CEK SUBDOMAIN UDAH DIPAKE BELUM
     existing_subdomain = db.query(Showroom).filter(Showroom.subdomain == showroom.subdomain).first()
     if existing_subdomain:
         raise HTTPException(status_code=400, detail="Subdomain sudah dipakai")
 
-    # 3. BUAT SHOWROOM DULU
     new_showroom = Showroom(
         nama_showroom=showroom.nama_showroom,
         subdomain=showroom.subdomain,
@@ -68,13 +64,12 @@ def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = D
     db.commit()
     db.refresh(new_showroom)
 
-    # 4. BUAT USER - UDAH TAMBAH NAME & PHONE
     hashed_password = hash_password(showroom.password)
     new_user = User(
         showroom_id=new_showroom.id,
-        name=showroom.nama_showroom,  # DITAMBAH
+        name=showroom.nama_showroom,
         email=showroom.email,
-        phone=showroom.wa_number,     # DITAMBAH
+        phone=showroom.wa_number,
         password=hashed_password,
         role='showroom',
         status='pending'
@@ -89,9 +84,17 @@ def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = D
 def login_showroom(request: schemas.LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
+        print(f"[LOGIN FAIL] User tidak ketemu: {request.email}")
         raise HTTPException(status_code=400, detail="Email atau password salah")
     
-    if not verify_password(request.password, user.password):
+    print(f"[LOGIN] Email: {request.email}")
+    print(f"[LOGIN] Hash di DB: {user.password}")
+    print(f"[LOGIN] Panjang hash: {len(user.password)}")
+    
+    verify_result = verify_password(request.password, user.password)
+    print(f"[LOGIN] Verify result: {verify_result}")
+    
+    if not verify_result:
         raise HTTPException(status_code=400, detail="Email atau password salah")
     
     if user.status not in ['pending', 'active']:
@@ -109,3 +112,30 @@ def login_showroom(request: schemas.LoginRequest, db: Session = Depends(get_db))
             "showroom_id": user.showroom_id
         }
     }
+
+# HAPUS SETELAH DIPAKE
+@router.post("/reset-admin")
+def reset_admin(db: Session = Depends(get_db)):
+    new_hash = hash_password("admin123")
+    user = db.query(User).filter(User.email == "admin@otopadang.com").first()
+    if not user:
+        user = User(
+            name="Admin Otopadang",
+            email="admin@otopadang.com",
+            phone="08979879518",
+            password=new_hash,
+            role="admin",
+            status="active",
+            showroom_id=None
+        )
+        db.add(user)
+    else:
+        user.password = new_hash
+        user.name = "Admin Otopadang"
+        user.phone = "08979879518"
+        user.role = "admin"
+        user.status = "active"
+    
+    db.commit()
+    print(f"[RESET] Hash baru admin: {new_hash}")
+    return {"msg": "Admin reset berhasil. Password: admin123"}
