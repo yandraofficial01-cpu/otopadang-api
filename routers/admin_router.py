@@ -100,12 +100,14 @@ def update_mobil_status(mobil_id: int, data: dict, db: Session = Depends(get_db)
     return {"message": f"Status mobil {mobil_id} diupdate"}
 
 # ===============================
-# 3. RUMAH
+# 3. RUMAH - FIX DOBEL ROUTE BIAR FE LAMA & BARU JALAN
 # ===============================
 @router.get("/rumah", response_model=list[schemas.RumahResponse])
 def get_all_rumah_admin(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
-    return db.query(models.House).all()
+    return db.query(models.House).order_by(models.House.id.desc()).all()
 
+# INI KUNCINYA: BIKIN 2 ROUTE POST SEKALIGUS
+@router.post("/rumah", response_model=schemas.RumahResponse)
 @router.post("/upload-rumah", response_model=schemas.RumahResponse)
 def upload_rumah(data: schemas.RumahCreate, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
     new_rumah = models.House(**data.model_dump())
@@ -122,6 +124,14 @@ def update_rumah_status(rumah_id: int, data: dict, db: Session = Depends(get_db)
         setattr(rumah, key, value)
     db.commit()
     return {"message": f"Status rumah diupdate"}
+
+@router.delete("/rumah/{rumah_id}")
+def delete_rumah(rumah_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    rumah = db.query(models.House).filter(models.House.id == rumah_id).first()
+    if not rumah: raise HTTPException(status_code=404, detail="Rumah tidak ditemukan")
+    db.delete(rumah)
+    db.commit()
+    return {"message": "Rumah dihapus"}
 
 # ===============================
 # 4. BLOG
