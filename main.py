@@ -3,14 +3,13 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware 
 import models 
-from database import engine # BUAT BIKIN TABEL
+from database import engine
 
 # IMPORT SEMUA ROUTER
 from routers.admin_router import router as admin_router 
 from routers import cars, houses, blog, ai_router, auth_router, showroom
 
 # BIKIN TABEL OTOMATIS PAS START
-# Catatan: di production sebaiknya pake Alembic
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -22,39 +21,44 @@ app = FastAPI(
     openapi_url="/openapi.json"
 )
 
-# 1. SETTING CORS - PENTING BUAT FE VERCEL
-origins = [
-    "http://localhost:3000",            
-    "http://localhost:5173",            
-    "https://otopadang.com",             
-    "https://www.otopadang.com",         
-    "https://otopadang-frontend.vercel.app", # domain vercel yg lu set manual
-    "https://frontend.vercel.app",           # <-- TAMBAHIN INI. Ini yg di SS lu
-]
-
+# 1. SETTING CORS - FIX BIAR GAK FAILED TO FETCH
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",  # ALLOW SEMUA DEPLOY VERCEL (preview & production)
+    allow_origins=[
+        "http://localhost:3000",            
+        "http://localhost:5173",            
+        "https://otopadang.com",             
+        "https://www.otopadang.com",         
+        "https://otopadang-frontend.vercel.app",
+        "https://frontend.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"], 
     allow_headers=["*"],
 )
 
 # 2. MOUNT STATIC BUAT FOTO
+# Pastiin folder static ada, kalo belum bikin
+os.makedirs("static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # 3. DAFTARIN SEMUA ROUTER URUT
-app.include_router(auth_router.router) # Auth dulu, biar bisa login
-app.include_router(admin_router)       # Menu Admin
-app.include_router(showroom.router)    # Dashboard Showroom
-app.include_router(cars.router)        # Mobil - prefix udah di dalem cars.py
-app.include_router(houses.router)      # Rumah - prefix udah di dalem houses.py
-app.include_router(blog.router)        # Blog
-app.include_router(ai_router.router)   # AI
+app.include_router(auth_router.router)
+app.include_router(admin_router)
+app.include_router(showroom.router)
+app.include_router(cars.router)
+app.include_router(houses.router)
+app.include_router(blog.router)
+app.include_router(ai_router.router)
 
 @app.get("/")
 def read_root():
     return {"message": "Otopadang API Jalan Bro!"}
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "cors": "enabled for vercel"}
 
 if __name__ == "__main__":
     import uvicorn
