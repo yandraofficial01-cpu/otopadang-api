@@ -12,36 +12,27 @@ class Showroom(Base):
     deskripsi = Column(Text)
     logo = Column(String(255))
     wa_number = Column(String(20), nullable=False)
-    paket = Column(Enum('Basic', 'Premium'), default='Basic')
-    status_bayar = Column(Enum('aktif', 'expired'), default='aktif')
-    
-    # BUAT APPROVE ADMIN
-    status = Column(Enum('pending', 'approved', 'rejected'), default='pending', nullable=False) 
-    
+    paket = Column(Enum('Basic', 'Premium', name='paket_enum'), default='Basic')
+    status_bayar = Column(Enum('aktif', 'expired', name='status_bayar_enum'), default='aktif')
+    status = Column(Enum('pending', 'approved', 'rejected', name='showroom_status_enum'), default='pending', nullable=False) 
     tgl_expired = Column(Date)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     
     cars = relationship("Car", back_populates="showroom", cascade="all, delete-orphan")
-    users = relationship("User", back_populates="showroom", cascade="all, delete-orphan") # GANTI JADI User
-    # RELASI HOUSE DIHAPUS
+    users = relationship("User", back_populates="showroom", cascade="all, delete-orphan")
 
-
-class User(Base): # GANTI NAMA CLASS
-    __tablename__ = "users" # GANTI INI
+class User(Base):
+    __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     showroom_id = Column(Integer, ForeignKey("showrooms.id", ondelete="CASCADE"), nullable=True)
-    
-    # TAMBAHIN KOLOM YG ADA DI DB LU
-    name = Column(String(255), nullable=True)  # lu ada di DB
+    name = Column(String(255), nullable=True)
     email = Column(String(100), unique=True, nullable=False, index=True)
     password = Column(String(255), nullable=False)
-    phone = Column(String(50), nullable=True) # lu ada di DB
-    role = Column(String(50), default='showroom') # PENTING
-    status = Column(String(50), default='active') # PENTING
+    phone = Column(String(50), nullable=True)
+    role = Column(String(50), default='showroom')
+    status = Column(String(50), default='active')
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
-    
     showroom = relationship("Showroom", back_populates="users")
-
 
 class Car(Base):
     __tablename__ = "cars"
@@ -71,12 +62,9 @@ class Car(Base):
     foto_url_8 = Column(String(255))
     video_url = Column(String(255))
     no_wa_showroom = Column(String(20))
-    
-    status = Column(Enum('pending', 'approved', 'ready', 'sold'), default='pending')
-    
+    status = Column(Enum('pending', 'approved', 'ready', 'sold', name='car_status_enum'), default='pending')
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     showroom = relationship("Showroom", back_populates="cars")
-
 
 class House(Base):
     __tablename__ = "houses"
@@ -102,9 +90,20 @@ class House(Base):
     foto_url_8 = Column(String(255))
     video_url = Column(String(255))
     wa_number = Column(String(20), default='628979879518')
-    status = Column(Enum('available', 'sold'), default='available')
+    status = Column(Enum('available', 'sold', name='house_status_enum'), default='available')
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
+# === INI YANG HILANG, TAMBAHAN BARU ===
+class Blog(Base):
+    __tablename__ = "blogs"
+    id = Column(Integer, primary_key=True, index=True)
+    judul = Column(String(255), nullable=False)
+    slug = Column(String(255), unique=True)
+    konten = Column(Text)
+    gambar = Column(String(255))
+    penulis = Column(String(100), default='Admin')
+    status = Column(Enum('draft', 'publish', name='blog_status_enum'), default='publish')
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
 class LeadRumah(Base):
     __tablename__ = "leads_rumah"
@@ -112,11 +111,10 @@ class LeadRumah(Base):
     house_id = Column(Integer, ForeignKey("houses.id", ondelete="CASCADE"))
     nama_buyer = Column(String(100))
     no_wa_buyer = Column(String(20))
-    status = Column(Enum('Tanya', 'Survey', 'Booking', 'Akad', 'Gagal'), default='Tanya')
+    status = Column(Enum('Tanya', 'Survey', 'Booking', 'Akad', 'Gagal', name='lead_status_enum'), default='Tanya')
     fee_persen = Column(DECIMAL(4,2), default=2.00)
     nilai_fee = Column(BigInteger)
     tgl_akad = Column(Date)
     catatan = Column(Text)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
-    
     house = relationship("House")
