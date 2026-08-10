@@ -23,6 +23,21 @@ class StatusBayarEnum(str, Enum):
     aktif = "aktif"
     expired = "expired"
 
+class HouseStatusEnum(str, Enum):
+    available = "available"
+    sold = "sold"
+
+class LeadRumahStatusEnum(str, Enum):
+    Tanya = "Tanya"
+    Survey = "Survey"
+    Booking = "Booking"
+    Akad = "Akad"
+    Gagal = "Gagal"
+
+class BlogStatusEnum(str, Enum):
+    draft = "draft"
+    publish = "publish"
+
 # ========== AUTH ==========
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -109,29 +124,41 @@ class CarResponse(CarCreate):
 MobilCreate = CarCreate
 MobilResponse = CarResponse
 
-# ========== RUMAH ==========
-class RumahBase(BaseModel):
-    judul: str
-    alamat: str
-    harga: int
-    luas_tanah: int
-    luas_bangunan: int
-    kamar_tidur: int
-    kamar_mandi: int
-    deskripsi: Optional[str] = None
-    foto: Optional[str] = None
-    showroom_id: Optional[int] = None
-    status: StatusEnum = StatusEnum.pending
+# ========== RUMAH / HOUSE - SUDAH FIX SESUAI TABEL houses ==========
+class RumahCreate(BaseModel):
+    nama_rumah: Optional[str] = None
+    tipe: Optional[str] = None
+    alamat: Optional[str] = None
+    harga: Optional[int] = None
+    harga_kredit: Optional[int] = None
+    angsuran: Optional[int] = None
+    lama_angsuran: Optional[int] = None
+    luas_tanah: Optional[int] = None
+    luas_bangunan: Optional[int] = None
+    spesifikasi: Optional[str] = None
+    badge_bonus: Optional[str] = None
+    foto_url_1: Optional[str] = None
+    foto_url_2: Optional[str] = None
+    foto_url_3: Optional[str] = None
+    foto_url_4: Optional[str] = None
+    foto_url_5: Optional[str] = None
+    foto_url_6: Optional[str] = None
+    foto_url_7: Optional[str] = None
+    foto_url_8: Optional[str] = None
+    video_url: Optional[str] = None
+    wa_number: Optional[str] = "628979879518"
+    status: HouseStatusEnum = HouseStatusEnum.available
 
-class RumahCreate(RumahBase):
-    pass
-
-class RumahResponse(RumahBase):
+class RumahResponse(RumahCreate):
     id: int
     created_at: datetime
-
     class Config:
         from_attributes = True
+
+# ALIAS KOMPATIBEL UNTUK ROUTER BARU & LAMA
+HouseCreate = RumahCreate
+HouseResponse = RumahResponse
+RumahBase = RumahCreate
 
 # ========== BLOG ==========
 class BlogBase(BaseModel):
@@ -139,15 +166,31 @@ class BlogBase(BaseModel):
     slug: str
     konten: str
     gambar: Optional[str] = None
-    status: str = "published"
+    penulis: Optional[str] = "Admin"
+    status: BlogStatusEnum = BlogStatusEnum.publish
 
 class BlogCreate(BlogBase):
     pass
 
 class BlogResponse(BlogBase):
     id: int
-    author_id: int
     created_at: datetime
+    class Config:
+        from_attributes = True
 
+# ========== LEAD RUMAH ==========
+class LeadRumahCreate(BaseModel):
+    house_id: int
+    nama_buyer: str
+    no_wa_buyer: str
+    status: LeadRumahStatusEnum = LeadRumahStatusEnum.Tanya
+    fee_persen: Optional[float] = 2.00
+    nilai_fee: Optional[int] = None
+    tgl_akad: Optional[date] = None
+    catatan: Optional[str] = None
+
+class LeadRumahResponse(LeadRumahCreate):
+    id: int
+    created_at: datetime
     class Config:
         from_attributes = True
