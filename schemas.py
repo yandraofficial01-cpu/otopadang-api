@@ -124,19 +124,19 @@ class CarResponse(CarCreate):
 MobilCreate = CarCreate
 MobilResponse = CarResponse
 
-# ========== RUMAH / HOUSE - SUDAH FIX SESUAI TABEL houses ==========
+# ========== RUMAH / HOUSE - FIX INI DOANG ==========
 class RumahCreate(BaseModel):
-    nama_rumah: Optional[str] = None
+    nama_rumah: str # wajib
     tipe: Optional[str] = None
     alamat: Optional[str] = None
-    harga: Optional[int] = None
-    harga_kredit: Optional[int] = None
-    angsuran: Optional[int] = None
-    lama_angsuran: Optional[int] = None
-    luas_tanah: Optional[int] = None
-    luas_bangunan: Optional[int] = None
+    harga: int # wajib
+    harga_kredit: Optional[int] = 0
+    angsuran: Optional[int] = 0
+    lama_angsuran: Optional[int] = 120
+    luas_tanah: Optional[int] = 0
+    luas_bangunan: Optional[int] = 0
     spesifikasi: Optional[str] = None
-    badge_bonus: Optional[str] = None
+    badge_bonus: Optional[str] = "Free Canopy"
     foto_url_1: Optional[str] = None
     foto_url_2: Optional[str] = None
     foto_url_3: Optional[str] = None
