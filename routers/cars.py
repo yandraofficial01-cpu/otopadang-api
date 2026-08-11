@@ -7,22 +7,34 @@ from typing import List
 
 from database import get_db
 from models import Car
-from schemas import CarCreate, CarResponse # <-- GANTI JADI CarResponse
-from dependencies import get_current_user # <-- PENTING BUAT KUNCI
+from schemas import CarCreate, CarResponse
+from dependencies import get_current_user
 
-router = APIRouter(prefix="/mobil", tags=["Cars"]) # prefix pindah ke sini biar rapi
+router = APIRouter(prefix="/mobil", tags=["Cars"])
 
 UPLOAD_DIR = "static/uploads/cars"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+# 1. ENDPOINT PUBLIK BUAT INDUK WEB OTOPADANG.COM
 @router.get("/", response_model=List[CarResponse])
-def get_all_cars(
+def get_all_cars_public(db: Session = Depends(get_db)):
+    """
+    INI BUAT OTOPADANG.COM
+    Cuma nampilin mobil yg udah di approve admin dan status ready
+    GAK PAKAI LOGIN
+    """
+    cars = db.query(Car).filter(Car.status.in_(['approved', 'ready'])).order_by(Car.created_at.desc()).all()
+    return cars
+
+# 2. ENDPOINT PRIVATE BUAT DASHBOARD SHOWROOM
+@router.get("/all", response_model=List[CarResponse])
+def get_all_cars_admin(
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user) # <-- WAJIB LOGIN
+    current_user: dict = Depends(get_current_user) # WAJIB LOGIN
 ):
     """
-    Kalau role=admin -> liat semua mobil 'approved' dan 'ready'
-    Kalau role=showroom -> cuma liat mobil punya dia semua status
+    INI BUAT DASHBOARD SHOWROOM
+    Admin: liat semua status. Showroom: liat punya dia semua status
     """
     role = current_user.get("role")
     showroom_id = current_user.get("showroom_id")
@@ -40,7 +52,7 @@ def get_all_cars(
 def get_car(
     car_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user) # INI TETEP DIKUNCI
 ):
     car = db.query(Car).filter(Car.id == car_id).first()
     if not car:
@@ -62,9 +74,8 @@ def create_car(
     role = current_user.get("role")
     showroom_id = current_user.get("showroom_id")
 
-    # Admin boleh input ke showroom mana aja. Showroom cuma boleh ke dirinya
     if role!= "admin":
-        car.showroom_id = showroom_id # <-- KUNCI: Auto isi dari token JWT
+        car.showroom_id = showroom_id
 
     new_car = Car(**car.dict())
     db.add(new_car)
@@ -83,7 +94,6 @@ def update_car(
     if not db_car:
         raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
 
-    # CEK KEPEMILIKAN
     if current_user.get("role")!= "admin" and db_car.showroom_id!= current_user.get("showroom_id"):
         raise HTTPException(status_code=403, detail="Akses ditolak. Ini bukan mobil anda")
 
@@ -104,7 +114,6 @@ def delete_car(
     if not db_car:
         raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
 
-    # CEK KEPEMILIKAN
     if current_user.get("role")!= "admin" and db_car.showroom_id!= current_user.get("showroom_id"):
         raise HTTPException(status_code=403, detail="Akses ditolak. Ini bukan mobil anda")
 
@@ -112,34 +121,29 @@ def delete_car(
     db.commit()
     return {"message": "Mobil berhasil dihapus"}
 
-# TAMBAH INI: ENDPOINT UPLOAD FOTO + DIKUNCI
 @router.post("/{car_id}/upload-foto")
 async def upload_foto_mobil(
     car_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user) # <-- DIKUNCI
+    current_user: dict = Depends(get_current_user)
 ):
     car = db.query(Car).filter(Car.id == car_id).first()
     if not car:
         raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
 
-    # CEK KEPEMILIKAN DULU
     if current_user.get("role")!= "admin" and car.showroom_id!= current_user.get("showroom_id"):
         raise HTTPException(status_code=403, detail="Akses ditolak. Ini bukan mobil anda")
 
-    # bikin nama file unik
     ext = file.filename.split(".")[-1]
     filename = f"{uuid4()}.{ext}"
     filepath = os.path.join(UPLOAD_DIR, filename)
 
-    # simpan file
     with open(filepath, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
     url = f"/static/uploads/cars/{filename}"
 
-    # cari slot foto kosong pertama dari 1-8
     for i in range(1, 9):
         field = f"foto_url_{i}"
         if getattr(car, field) in [None, ""]:
