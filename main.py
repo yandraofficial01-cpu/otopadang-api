@@ -24,7 +24,7 @@ app = FastAPI(
 # 1. SETTING CORS - FIX BIAR GAK FAILED TO FETCH
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https://.*\.vercel\.app",  # ALLOW SEMUA DEPLOY VERCEL (preview & production)
+    allow_origin_regex=r"https://.*\.vercel\.app",  # ALLOW SEMUA DEPLOY VERCEL
     allow_origins=[
         "http://localhost:3000",            
         "http://localhost:5173",            
@@ -43,11 +43,12 @@ os.makedirs("static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # 3. DAFTARIN SEMUA ROUTER URUT
+# PENTING: prefix udah ada di masing2 file router, jadi disini jangan diisi lagi
 app.include_router(auth_router.router)
 app.include_router(admin_router)
 app.include_router(showroom.router)
 app.include_router(cars.router)
-app.include_router(houses.router, prefix="/rumah", tags=["Rumah Publik"]) # <-- FIX DI SINI
+app.include_router(houses.router) # <-- UDAH DI FIX, HAPUS prefix="/rumah"
 app.include_router(blog.router)
 app.include_router(ai_router.router)
 
