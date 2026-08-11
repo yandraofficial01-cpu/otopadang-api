@@ -39,7 +39,6 @@ app.add_middleware(
 )
 
 # 2. MOUNT STATIC BUAT FOTO
-# Pastiin folder static ada, kalo belum bikin
 os.makedirs("static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -48,7 +47,7 @@ app.include_router(auth_router.router)
 app.include_router(admin_router)
 app.include_router(showroom.router)
 app.include_router(cars.router)
-app.include_router(houses.router)
+app.include_router(houses.router, prefix="/rumah", tags=["Rumah Publik"]) # <-- FIX DI SINI
 app.include_router(blog.router)
 app.include_router(ai_router.router)
 
