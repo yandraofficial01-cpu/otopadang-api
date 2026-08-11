@@ -3,11 +3,12 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import House, LeadRumah
 
-router = APIRouter()
+router = APIRouter(prefix="/rumah", tags=["Rumah"]) # TAMBAH PREFIX BIAR URL NYA /rumah
 
 @router.get("/")
 def get_all_houses(db: Session = Depends(get_db)):
-    houses = db.query(House).filter(House.status == 'available').all()
+    # HAPUS FILTER STATUS. Tampilkan semua data rumah, urut terbaru
+    houses = db.query(House).order_by(House.created_at.desc()).all()
     return houses
 
 @router.get("/{house_id}")
