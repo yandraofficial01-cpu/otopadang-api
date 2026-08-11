@@ -67,7 +67,7 @@ class Car(Base):
     showroom = relationship("Showroom", back_populates="cars")
 
 class House(Base):
-    __tablename__ = "rumah" # KUNCI: harus sama dengan nama table di SQL lu
+    __tablename__ = "rumah" # INI DOANG YG GUE GANTI
     id = Column(Integer, primary_key=True, index=True)
     nama_rumah = Column(String(100), nullable=False)
     tipe = Column(String(50))
@@ -107,7 +107,7 @@ class Blog(Base):
 class LeadRumah(Base):
     __tablename__ = "leads_rumah"
     id = Column(Integer, primary_key=True, index=True)
-    house_id = Column(Integer, ForeignKey("rumah.id", ondelete="CASCADE")) # FK juga ganti ke rumah
+    house_id = Column(Integer, ForeignKey("rumah.id", ondelete="CASCADE")) # FK ikut ganti
     nama_buyer = Column(String(100))
     no_wa_buyer = Column(String(20))
     status = Column(Enum('Tanya', 'Survey', 'Booking', 'Akad', 'Gagal', name='lead_status_enum'), default='Tanya')
