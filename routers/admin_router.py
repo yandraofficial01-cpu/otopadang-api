@@ -27,42 +27,52 @@ def get_showrooms_pending(db: Session = Depends(get_db), current_user: models.Us
     return db.query(models.Showroom).filter(models.Showroom.status == "pending").all()
 
 @router.post("/register-showroom", response_model=schemas.ShowroomResponse)
-def register_showroom_manual(showroom: schemas.ShowroomCreate, db: Session = Depends(get_db)): # <-- UDAH DIHAPUS require_admin
+def register_showroom_manual(showroom: schemas.ShowroomCreate, db: Session = Depends(get_db)): # <-- PUBLIK, TANPA LOGIN
+    # 1. Cek subdomain udah ada belum
     db_showroom = db.query(models.Showroom).filter(models.Showroom.subdomain == showroom.subdomain).first()
     if db_showroom:
         raise HTTPException(status_code=400, detail="Subdomain sudah dipakai")
 
+    # 2. Cek email udah ada belum
     db_user = db.query(models.User).filter(models.User.email == showroom.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email sudah terdaftar")
 
     hashed_password = hash_password(showroom.password)
 
-    new_showroom = models.Showroom(
-        nama_showroom=showroom.nama_showroom,
-        subdomain=showroom.subdomain,
-        wa_number=showroom.wa_number,
-        alamat=showroom.alamat,
-        deskripsi=showroom.deskripsi,
-        logo=showroom.logo,
-        status="pending", # <-- DIUBAH JADI PENDING
-        status_bayar="trial",
-        paket="Free"
-    )
-    db.add(new_showroom)
-    db.commit()
-    db.refresh(new_showroom)
+    try:
+        # 3. Bikin showroom dulu
+        new_showroom = models.Showroom(
+            nama_showroom=showroom.nama_showroom,
+            subdomain=showroom.subdomain,
+            wa_number=showroom.wa_number,
+            alamat=showroom.alamat,
+            deskripsi=showroom.deskripsi,
+            logo=showroom.logo,
+            status="pending", # Biar di approve admin dulu
+            status_bayar="trial",
+            paket="Free"
+        )
+        db.add(new_showroom)
+        db.commit()
+        db.refresh(new_showroom)
 
-    new_user = models.User(
-        showroom_id=new_showroom.id,
-        email=showroom.email,
-        password=hashed_password,
-        name=showroom.nama_showroom,
-        role='showroom',
-        status='active'
-    )
-    db.add(new_user)
-    db.commit()
+        # 4. Bikin user admin showroom nya
+        new_user = models.User(
+            showroom_id=new_showroom.id,
+            email=showroom.email,
+            password=hashed_password,
+            name=showroom.nama_showroom,
+            role='showroom',
+            status='active'
+        )
+        db.add(new_user)
+        db.commit()
+        
+    except Exception as e:
+        db.rollback() # <-- PENTING: kalau gagal, hapus semua
+        raise HTTPException(status_code=500, detail=f"Gagal daftar: {str(e)}")
+
     return new_showroom
 
 @router.put("/showrooms/{showroom_id}/approve")
