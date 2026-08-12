@@ -27,7 +27,7 @@ def get_showrooms_pending(db: Session = Depends(get_db), current_user: models.Us
     return db.query(models.Showroom).filter(models.Showroom.status == "pending").all()
 
 @router.post("/register-showroom", response_model=schemas.ShowroomResponse)
-def register_showroom_manual(showroom: schemas.ShowroomCreate, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+def register_showroom_manual(showroom: schemas.ShowroomCreate, db: Session = Depends(get_db)): # <-- UDAH DIHAPUS require_admin
     db_showroom = db.query(models.Showroom).filter(models.Showroom.subdomain == showroom.subdomain).first()
     if db_showroom:
         raise HTTPException(status_code=400, detail="Subdomain sudah dipakai")
@@ -45,9 +45,9 @@ def register_showroom_manual(showroom: schemas.ShowroomCreate, db: Session = Dep
         alamat=showroom.alamat,
         deskripsi=showroom.deskripsi,
         logo=showroom.logo,
-        status="approved",
-        status_bayar="aktif",
-        paket="Premium"
+        status="pending", # <-- DIUBAH JADI PENDING
+        status_bayar="trial",
+        paket="Free"
     )
     db.add(new_showroom)
     db.commit()
@@ -106,7 +106,6 @@ def update_mobil_status(mobil_id: int, data: dict, db: Session = Depends(get_db)
 def get_all_rumah_admin(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
     return db.query(models.House).order_by(models.House.id.desc()).all()
 
-# INI KUNCINYA: BIKIN 2 ROUTE POST SEKALIGUS
 @router.post("/rumah", response_model=schemas.RumahResponse)
 @router.post("/upload-rumah", response_model=schemas.RumahResponse)
 def upload_rumah(data: schemas.RumahCreate, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
