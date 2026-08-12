@@ -1,42 +1,8 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 from datetime import datetime, date
-from enum import Enum
 
-# ENUM
-class StatusEnum(str, Enum):
-    pending = "pending"
-    approved = "approved"
-    ready = "ready"
-    sold = "sold"
-
-class ShowroomStatusEnum(str, Enum):
-    pending = "pending"
-    approved = "approved"
-    rejected = "rejected"
-
-class PaketEnum(str, Enum):
-    Basic = "Basic"
-    Premium = "Premium"
-
-class StatusBayarEnum(str, Enum):
-    aktif = "aktif"
-    expired = "expired"
-
-class HouseStatusEnum(str, Enum):
-    available = "available"
-    sold = "sold"
-
-class LeadRumahStatusEnum(str, Enum):
-    Tanya = "Tanya"
-    Survey = "Survey"
-    Booking = "Booking"
-    Akad = "Akad"
-    Gagal = "Gagal"
-
-class BlogStatusEnum(str, Enum):
-    draft = "draft"
-    publish = "publish"
+# HAPUS SEMUA ENUM. GA DIPAKE LAGI BIAR GA RIBUT
 
 # ========== AUTH ==========
 class LoginRequest(BaseModel):
@@ -53,7 +19,6 @@ class RegisterShowroomRequest(BaseModel):
 
 # ========== SHOWROOM ==========
 class ShowroomCreate(BaseModel):
-    """Khusus admin yg daftarin manual"""
     nama_showroom: str
     subdomain: str
     wa_number: str
@@ -71,19 +36,12 @@ class ShowroomResponse(BaseModel):
     deskripsi: Optional[str] = None
     logo: Optional[str] = None
     wa_number: str
-    paket: PaketEnum
-    status_bayar: StatusBayarEnum
-    status: ShowroomStatusEnum
+    paket: str # <-- UDAH DIUBAH JADI str
+    status_bayar: str # <-- UDAH DIUBAH JADI str
+    status: str # <-- UDAH DIUBAH JADI str
 
     class Config:
         from_attributes = True
-
-class ShowroomUpdate(BaseModel):
-    nama_showroom: Optional[str] = None
-    alamat: Optional[str] = None
-    deskripsi: Optional[str] = None
-    logo: Optional[str] = None
-    wa_number: Optional[str] = None
 
 # ========== MOBIL / CAR ==========
 class CarCreate(BaseModel):
@@ -111,7 +69,7 @@ class CarCreate(BaseModel):
     foto_url_8: Optional[str] = None
     video_url: Optional[str] = None
     no_wa_showroom: Optional[str] = None
-    status: StatusEnum = StatusEnum.pending
+    status: str = "pending" # <-- UBAH JADI str
 
 class CarResponse(CarCreate):
     id: int
@@ -120,16 +78,15 @@ class CarResponse(CarCreate):
     class Config:
         from_attributes = True
 
-# ALIAS BIAR GA GANTI ADMIN_ROUTER
 MobilCreate = CarCreate
 MobilResponse = CarResponse
 
-# ========== RUMAH / HOUSE - FIX INI DOANG ==========
+# ========== RUMAH / HOUSE ==========
 class RumahCreate(BaseModel):
-    nama_rumah: str # wajib
+    nama_rumah: str
     tipe: Optional[str] = None
     alamat: Optional[str] = None
-    harga: int # wajib
+    harga: int
     harga_kredit: Optional[int] = 0
     angsuran: Optional[int] = 0
     lama_angsuran: Optional[int] = 120
@@ -147,7 +104,7 @@ class RumahCreate(BaseModel):
     foto_url_8: Optional[str] = None
     video_url: Optional[str] = None
     wa_number: Optional[str] = "628979879518"
-    status: HouseStatusEnum = HouseStatusEnum.available
+    status: str = "available" # <-- UBAH JADI str
 
 class RumahResponse(RumahCreate):
     id: int
@@ -155,7 +112,6 @@ class RumahResponse(RumahCreate):
     class Config:
         from_attributes = True
 
-# ALIAS KOMPATIBEL UNTUK ROUTER BARU & LAMA
 HouseCreate = RumahCreate
 HouseResponse = RumahResponse
 RumahBase = RumahCreate
@@ -167,7 +123,7 @@ class BlogBase(BaseModel):
     konten: str
     gambar: Optional[str] = None
     penulis: Optional[str] = "Admin"
-    status: BlogStatusEnum = BlogStatusEnum.publish
+    status: str = "publish" # <-- UBAH JADI str
 
 class BlogCreate(BlogBase):
     pass
@@ -183,7 +139,7 @@ class LeadRumahCreate(BaseModel):
     house_id: int
     nama_buyer: str
     no_wa_buyer: str
-    status: LeadRumahStatusEnum = LeadRumahStatusEnum.Tanya
+    status: str = "Tanya" # <-- UBAH JADI str
     fee_persen: Optional[float] = 2.00
     nilai_fee: Optional[int] = None
     tgl_akad: Optional[date] = None
