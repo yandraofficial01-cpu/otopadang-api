@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, BigInteger, Text, Enum, DECIMAL, Date, TIMESTAMP, ForeignKey, func
+from sqlalchemy import Column, Integer, String, BigInteger, Text, DECIMAL, Date, TIMESTAMP, ForeignKey, func
 from sqlalchemy.orm import relationship
 from database import Base
 from datetime import datetime
@@ -12,9 +12,9 @@ class Showroom(Base):
     deskripsi = Column(Text)
     logo = Column(String(255))
     wa_number = Column(String(20), nullable=False)
-    paket = Column(Enum('Basic', 'Premium', name='paket_enum'), default='Basic')
-    status_bayar = Column(Enum('aktif', 'expired', name='status_bayar_enum'), default='aktif')
-    status = Column(Enum('pending', 'approved', 'rejected', name='showroom_status_enum'), default='pending', nullable=False)
+    paket = Column(String(50), default='Free') # <--- UDAH DIUBAH JADI STRING
+    status_bayar = Column(String(50), default='trial') # <--- UDAH DIUBAH JADI STRING
+    status = Column(String(50), default='pending', nullable=False) # <--- UDAH DIUBAH JADI STRING
     tgl_expired = Column(Date)
     created_at = Column(TIMESTAMP, server_default=func.now())
 
@@ -62,12 +62,12 @@ class Car(Base):
     foto_url_8 = Column(String(255))
     video_url = Column(String(255))
     no_wa_showroom = Column(String(20))
-    status = Column(Enum('pending', 'approved', 'ready', 'sold', name='car_status_enum'), default='pending')
+    status = Column(String(50), default='pending') # <--- UDAH DIUBAH JADI STRING
     created_at = Column(TIMESTAMP, server_default=func.now())
     showroom = relationship("Showroom", back_populates="cars")
 
 class House(Base):
-    __tablename__ = "rumah" # INI DOANG YG GUE GANTI
+    __tablename__ = "rumah"
     id = Column(Integer, primary_key=True, index=True)
     nama_rumah = Column(String(100), nullable=False)
     tipe = Column(String(50))
@@ -90,7 +90,7 @@ class House(Base):
     foto_url_8 = Column(String(255))
     video_url = Column(String(255))
     wa_number = Column(String(20), default='628979879518')
-    status = Column(Enum('available', 'sold', name='house_status_enum'), default='available')
+    status = Column(String(50), default='available') # <--- UDAH DIUBAH JADI STRING
     created_at = Column(TIMESTAMP, server_default=func.now())
 
 class Blog(Base):
@@ -101,16 +101,16 @@ class Blog(Base):
     konten = Column(Text)
     gambar = Column(String(255))
     penulis = Column(String(100), default='Admin')
-    status = Column(Enum('draft', 'publish', name='blog_status_enum'), default='publish')
+    status = Column(String(50), default='publish') # <--- UDAH DIUBAH JADI STRING
     created_at = Column(TIMESTAMP, server_default=func.now())
 
 class LeadRumah(Base):
     __tablename__ = "leads_rumah"
     id = Column(Integer, primary_key=True, index=True)
-    house_id = Column(Integer, ForeignKey("rumah.id", ondelete="CASCADE")) # FK ikut ganti
+    house_id = Column(Integer, ForeignKey("rumah.id", ondelete="CASCADE"))
     nama_buyer = Column(String(100))
     no_wa_buyer = Column(String(20))
-    status = Column(Enum('Tanya', 'Survey', 'Booking', 'Akad', 'Gagal', name='lead_status_enum'), default='Tanya')
+    status = Column(String(50), default='Tanya') # <--- UDAH DIUBAH JADI STRING
     fee_persen = Column(DECIMAL(4,2), default=2.00)
     nilai_fee = Column(BigInteger)
     tgl_akad = Column(Date)
