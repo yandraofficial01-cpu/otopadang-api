@@ -12,11 +12,11 @@ class Showroom(Base):
     deskripsi = Column(Text)
     logo = Column(String(255))
     wa_number = Column(String(20), nullable=False)
-    paket = Column(String(50), default='Free') # <--- UDAH DIUBAH JADI STRING
-    status_bayar = Column(String(50), default='trial') # <--- UDAH DIUBAH JADI STRING
-    status = Column(String(50), default='pending', nullable=False) # <--- UDAH DIUBAH JADI STRING
+    paket = Column(String(50), default='Free')
+    status_bayar = Column(String(50), default='trial')
+    status = Column(String(50), default='pending', nullable=False)
     tgl_expired = Column(Date)
-    created_at = Column(TIMESTAMP, server_default=func.now())
+    created_at = Column(TIMESTAMP, server_default=func.now(), default=datetime.utcnow)
 
     cars = relationship("Car", back_populates="showroom", cascade="all, delete-orphan")
     users = relationship("User", back_populates="showroom", cascade="all, delete-orphan")
@@ -31,7 +31,7 @@ class User(Base):
     phone = Column(String(50), nullable=True)
     role = Column(String(50), default='showroom')
     status = Column(String(50), default='active')
-    created_at = Column(TIMESTAMP, server_default=func.now())
+    created_at = Column(TIMESTAMP, server_default=func.now(), default=datetime.utcnow)
     showroom = relationship("Showroom", back_populates="users")
 
 class Car(Base):
@@ -62,8 +62,8 @@ class Car(Base):
     foto_url_8 = Column(String(255))
     video_url = Column(String(255))
     no_wa_showroom = Column(String(20))
-    status = Column(String(50), default='pending') # <--- UDAH DIUBAH JADI STRING
-    created_at = Column(TIMESTAMP, server_default=func.now())
+    status = Column(String(50), default='pending')
+    created_at = Column(TIMESTAMP, server_default=func.now(), default=datetime.utcnow) # <--- INI KUNCI
     showroom = relationship("Showroom", back_populates="cars")
 
 class House(Base):
@@ -90,8 +90,8 @@ class House(Base):
     foto_url_8 = Column(String(255))
     video_url = Column(String(255))
     wa_number = Column(String(20), default='628979879518')
-    status = Column(String(50), default='available') # <--- UDAH DIUBAH JADI STRING
-    created_at = Column(TIMESTAMP, server_default=func.now())
+    status = Column(String(50), default='available')
+    created_at = Column(TIMESTAMP, server_default=func.now(), default=datetime.utcnow)
 
 class Blog(Base):
     __tablename__ = "blogs"
@@ -101,8 +101,8 @@ class Blog(Base):
     konten = Column(Text)
     gambar = Column(String(255))
     penulis = Column(String(100), default='Admin')
-    status = Column(String(50), default='publish') # <--- UDAH DIUBAH JADI STRING
-    created_at = Column(TIMESTAMP, server_default=func.now())
+    status = Column(String(50), default='publish')
+    created_at = Column(TIMESTAMP, server_default=func.now(), default=datetime.utcnow)
 
 class LeadRumah(Base):
     __tablename__ = "leads_rumah"
@@ -110,10 +110,10 @@ class LeadRumah(Base):
     house_id = Column(Integer, ForeignKey("rumah.id", ondelete="CASCADE"))
     nama_buyer = Column(String(100))
     no_wa_buyer = Column(String(20))
-    status = Column(String(50), default='Tanya') # <--- UDAH DIUBAH JADI STRING
+    status = Column(String(50), default='Tanya')
     fee_persen = Column(DECIMAL(4,2), default=2.00)
     nilai_fee = Column(BigInteger)
     tgl_akad = Column(Date)
     catatan = Column(Text)
-    created_at = Column(TIMESTAMP, server_default=func.now())
+    created_at = Column(TIMESTAMP, server_default=func.now(), default=datetime.utcnow)
     house = relationship("House")
