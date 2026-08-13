@@ -13,7 +13,6 @@ router = APIRouter(prefix="/mobil", tags=["Cars"])
 # 1. PUBLIK INDUK: BUAT otopadang.com - HARUS APPROVED DULU
 @router.get("/", response_model=List[CarResponse])
 def get_all_cars_public(db: Session = Depends(get_db)):
-    # Cuma tampil kalau sudah di approve admin
     cars = db.query(Car).filter(
         Car.status.in_(['approved', 'ready'])
     ).order_by(Car.created_at.desc()).all()
@@ -22,10 +21,9 @@ def get_all_cars_public(db: Session = Depends(get_db)):
 # 1.5 PUBLIK ANAK: BUAT WEBSITE SHOWROOM - TAMPIL LANGSUNG
 @router.get("/showroom/{showroom_id}", response_model=List[CarResponse])
 def get_cars_by_showroom_public(showroom_id: int, db: Session = Depends(get_db)):
-    # Showroom bisa nampilin mobil dia walau status pending
     cars = db.query(Car).filter(
         Car.showroom_id == showroom_id,
-        Car.status!= 'sold' # sold jangan ditampilin
+        Car.status!= 'sold'
     ).order_by(Car.created_at.desc()).all()
     return cars
 
@@ -40,10 +38,8 @@ def get_all_cars_dashboard(
     query = db.query(Car)
 
     if role == "admin":
-        # Admin liat semua
         cars = query.order_by(Car.created_at.desc()).all()
     else:
-        # Showroom liat punya dia semua status
         cars = query.filter(Car.showroom_id == showroom_id).order_by(Car.created_at.desc()).all()
     return cars
 
@@ -58,7 +54,6 @@ def get_car_detail(
     if not car:
         raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
 
-    # Admin bebas. Showroom cuma bisa liat punya dia
     if current_user.role!= "admin" and car.showroom_id!= current_user.showroom_id:
         raise HTTPException(status_code=403, detail="Akses ditolak. Ini bukan mobil anda")
     return car
@@ -78,6 +73,10 @@ async def create_car(
 
     car_dict = car_data.dict()
 
+    # PENTING: HAPUS FIELD YG BE YG ATUR BIAR GAK TABRAKAN
+    car_dict.pop('status', None)
+    car_dict.pop('showroom_id', None)
+
     new_car = Car(
         showroom_id = user_showroom_id if role == "showroom" else car_data.showroom_id,
         status='pending', # Default pending, nunggu admin approve
@@ -89,7 +88,7 @@ async def create_car(
     db.refresh(new_car)
     return new_car
 
-# 5. UPDATE: SHOWROOM CUMA BISA EDIT HARGA + DESKRIPSI
+# 5. UPDATE: SHOWROOM CUMA BISA EDIT HARGA + DESKRIPSI DLL
 @router.put("/{car_id}", response_model=CarResponse)
 async def update_car(
     car_id: int,
@@ -101,7 +100,6 @@ async def update_car(
     if not db_car:
         raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
 
-    # Cek kepemilikan
     if current_user.role!= "admin" and db_car.showroom_id!= current_user.showroom_id:
         raise HTTPException(status_code=403, detail="Akses ditolak. Ini bukan mobil anda")
 
@@ -111,7 +109,7 @@ async def update_car(
     if current_user.role == "showroom":
         allowed_fields = [
             "harga", "harga_kredit", "dp", "lama_angsuran",
-            "deskripsi", "lokasi", "no_wa_showroom", "foto_url" # foto boleh diupdate
+            "deskripsi", "lokasi", "no_wa_showroom", "foto_url"
         ]
         for key in update_data.keys():
             if key not in allowed_fields:
@@ -120,7 +118,6 @@ async def update_car(
                     detail=f"Showroom tidak bisa edit field: {key}. Hubungi admin"
                 )
 
-    # ADMIN BOLEH EDIT SEMUA TERMASUK STATUS
     for key, value in update_data.items():
         setattr(db_car, key, value)
 
