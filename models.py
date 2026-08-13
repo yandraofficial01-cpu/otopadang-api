@@ -35,7 +35,7 @@ class User(Base):
     showroom = relationship("Showroom", back_populates="users")
 
 class Car(Base):
-    __tablename__ = "cars"
+    __tablename__ = "cars" # <--- INI NAMANYA CARS
     id = Column(Integer, primary_key=True, index=True)
     showroom_id = Column(Integer, ForeignKey("showrooms.id", ondelete="CASCADE"))
     nama_mobil = Column(String(100))
@@ -62,8 +62,10 @@ class Car(Base):
     foto_url_8 = Column(String(255))
     video_url = Column(String(255))
     no_wa_showroom = Column(String(20))
-    status = Column(String(50), default='pending')
-    created_at = Column(TIMESTAMP, server_default=func.now(), default=datetime.utcnow) # <--- INI KUNCI
+    status = Column(String(50), default='pending') # pending, approved, rejected, sold
+    sold_at = Column(TIMESTAMP, nullable=True) # <--- INI TAMBAHAN BARU BUAT TANGGAL SOLD
+    created_at = Column(TIMESTAMP, server_default=func.now(), default=datetime.utcnow)
+    
     showroom = relationship("Showroom", back_populates="cars")
 
 class House(Base):
