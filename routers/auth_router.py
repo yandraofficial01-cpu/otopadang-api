@@ -43,6 +43,11 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
     return user
 
+def get_current_admin(current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Hanya admin yang bisa akses")
+    return current_user
+
 @router.post("/register", response_model=schemas.ShowroomResponse, status_code=status.HTTP_201_CREATED)
 def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.email == showroom.email).first()
@@ -81,7 +86,7 @@ def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = D
     return new_showroom
 
 @router.post("/login")
-def login_showroom(request: schemas.LoginRequest, db: Session = Depends(get_db)):
+def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
         print(f"[LOGIN FAIL] User tidak ketemu: {request.email}")
@@ -91,21 +96,18 @@ def login_showroom(request: schemas.LoginRequest, db: Session = Depends(get_db))
     print(f"[LOGIN] Role di DB: {user.role}")
     print(f"[LOGIN] Status di DB: {user.status}")
     
-    # 1. CEK ROLE DULU
-    if user.role != 'showroom':
-        raise HTTPException(status_code=403, detail="Akun ini bukan showroom")
-    
-    # 2. CEK STATUS
+    # 1. CEK STATUS - BERLAKU UNTUK SEMUA ROLE
     if user.status != 'active':
         raise HTTPException(status_code=403, detail="Akun belum aktif. Hubungi admin")
     
-    # 3. CEK PASSWORD
+    # 2. CEK PASSWORD
     verify_result = verify_password(request.password, user.password)
     print(f"[LOGIN] Verify result: {verify_result}")
     
     if not verify_result:
         raise HTTPException(status_code=400, detail="Email atau password salah")
     
+    # 3. HAPUS CEK ROLE. SEMUA ROLE BOLEH LOGIN DI SINI
     access_token = create_access_token(data={"email": user.email, "role": user.role, "showroom_id": user.showroom_id})
 
     return {
@@ -145,7 +147,6 @@ def reset_admin(db: Session = Depends(get_db)):
     db.commit()
     print(f"[RESET] Hash baru admin: {new_hash}")
     return {"msg": "Admin reset berhasil. Password: admin123"}
-
 
 # TAMBAHAN: BUAT RESET PASSWORD SHOWROOM
 @router.post("/reset-showroom/{id}")
