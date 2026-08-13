@@ -5,11 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 import models 
 from database import engine
 
-# IMPORT SEMUA ROUTER
 from routers.admin_router import router as admin_router 
 from routers import cars, houses, blog, ai_router, auth_router, showroom
 
-# BIKIN TABEL OTOMATIS PAS START
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -21,31 +19,26 @@ app = FastAPI(
     openapi_url="/openapi.json"
 )
 
-# MATIIN AUTO REDIRECT /rumah -> /rumah/
-# BIAR /rumah DAN /rumah/ SAMA AJA
 app.router.redirect_slashes = False 
 
-# 1. SETTING CORS - VERSI FINAL YANG JALAN DI VERCEL
+# CORS FINAL BUAT VERCEL + TOKEN
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",            
-        "http://localhost:5173",            
         "https://otopadang.com",             
         "https://www.otopadang.com",         
-        "https://otopadang-frontend.vercel.app", # DOMAIN FE UTAMA LU
-        "https://frontend.vercel.app", # DOMAIN FE CADANGAN LU
+        "https://otopadang-frontend.vercel.app", 
     ],
-    allow_credentials=False, # MATIIN DULU. KALAU UDAH PAKE LOGIN BARU NYALAIN
+    allow_credentials=True, # INI WAJIB TRUE KALAU PAKE TOKEN
     allow_methods=["*"], 
     allow_headers=["*"],
 )
 
-# 2. MOUNT STATIC BUAT FOTO
+# Biarin aja kalau masih ada foto lama
 os.makedirs("static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# 3. DAFTARIN SEMUA ROUTER URUT
 app.include_router(auth_router.router)
 app.include_router(admin_router)
 app.include_router(showroom.router)
@@ -61,8 +54,3 @@ def read_root():
 @app.get("/health")
 def health_check():
     return {"status": "ok", "cors": "enabled for vercel"}
-
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port)
