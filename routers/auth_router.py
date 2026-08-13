@@ -72,7 +72,7 @@ def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = D
         phone=showroom.wa_number,
         password=hashed_password,
         role='showroom',
-        status='pending'
+        status='active' # LANGSUNG ACTIVE BIAR GA RIBET
     )
     db.add(new_user)
     db.commit()
@@ -88,19 +88,25 @@ def login_showroom(request: schemas.LoginRequest, db: Session = Depends(get_db))
         raise HTTPException(status_code=400, detail="Email atau password salah")
     
     print(f"[LOGIN] Email: {request.email}")
-    print(f"[LOGIN] Hash di DB: {user.password}")
-    print(f"[LOGIN] Panjang hash: {len(user.password)}")
+    print(f"[LOGIN] Role di DB: {user.role}")
+    print(f"[LOGIN] Status di DB: {user.status}")
     
+    # 1. CEK ROLE DULU
+    if user.role != 'showroom':
+        raise HTTPException(status_code=403, detail="Akun ini bukan showroom")
+    
+    # 2. CEK STATUS
+    if user.status != 'active':
+        raise HTTPException(status_code=403, detail="Akun belum aktif. Hubungi admin")
+    
+    # 3. CEK PASSWORD
     verify_result = verify_password(request.password, user.password)
     print(f"[LOGIN] Verify result: {verify_result}")
     
     if not verify_result:
         raise HTTPException(status_code=400, detail="Email atau password salah")
     
-    if user.status not in ['pending', 'active']:
-        raise HTTPException(status_code=400, detail="Akun belum aktif")
-
-    access_token = create_access_token(data={"email": user.email, "role": user.role})
+    access_token = create_access_token(data={"email": user.email, "role": user.role, "showroom_id": user.showroom_id})
 
     return {
         "access_token": access_token,
@@ -139,3 +145,17 @@ def reset_admin(db: Session = Depends(get_db)):
     db.commit()
     print(f"[RESET] Hash baru admin: {new_hash}")
     return {"msg": "Admin reset berhasil. Password: admin123"}
+
+
+# TAMBAHAN: BUAT RESET PASSWORD SHOWROOM
+@router.post("/reset-showroom/{id}")
+def reset_showroom_password(id: int, db: Session = Depends(get_db)):
+    new_hash = hash_password("123456")
+    user = db.query(User).filter(User.id == id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+    
+    user.password = new_hash
+    user.status = "active"
+    db.commit()
+    return {"msg": f"Password user {user.email} direset ke 123456"}
