@@ -1,9 +1,12 @@
 import os
-from fastapi import FastAPI
+from datetime import datetime
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware 
+from sqlalchemy.orm import Session
+
 import models 
-from database import engine
+from database import engine, get_db # <--- PASTIIN get_db ADA DI database.py
 
 from routers.admin_router import router as admin_router 
 from routers import cars, houses, blog, ai_router, auth_router, showroom
@@ -30,7 +33,7 @@ app.add_middleware(
         "https://www.otopadang.com",         
         "https://otopadang-frontend.vercel.app", 
     ],
-    allow_credentials=True, # INI WAJIB TRUE KALAU PAKE TOKEN
+    allow_credentials=True,
     allow_methods=["*"], 
     allow_headers=["*"],
 )
@@ -46,6 +49,44 @@ app.include_router(cars.router)
 app.include_router(houses.router) 
 app.include_router(blog.router)
 app.include_router(ai_router.router)
+
+# ========== ENDPOINT ADMIN BARU ==========
+# 1. APPROVE MOBIL
+@app.put("/admin/mobil/{mobil_id}/approve")
+def approve_mobil(mobil_id: int, db: Session = Depends(get_db)):
+    mobil = db.query(models.Car).filter(models.Car.id == mobil_id).first()
+    if not mobil:
+        raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
+    
+    mobil.status = "approved"
+    db.commit()
+    db.refresh(mobil)
+    return {"message": "Mobil berhasil diapprove", "data": mobil}
+
+# 2. TANDAI SOLD
+@app.put("/admin/mobil/{mobil_id}/sold")
+def sold_mobil(mobil_id: int, db: Session = Depends(get_db)):
+    mobil = db.query(models.Car).filter(models.Car.id == mobil_id).first()
+    if not mobil:
+        raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
+    
+    mobil.status = "sold"
+    mobil.sold_at = datetime.utcnow() # catat tanggal laku
+    db.commit()
+    db.refresh(mobil)
+    return {"message": "Mobil ditandai SOLD", "data": mobil}
+
+# 3. HAPUS PERMANEN
+@app.delete("/admin/mobil/{mobil_id}")
+def delete_mobil(mobil_id: int, db: Session = Depends(get_db)):
+    mobil = db.query(models.Car).filter(models.Car.id == mobil_id).first()
+    if not mobil:
+        raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
+    
+    nama = mobil.nama_mobil
+    db.delete(mobil)
+    db.commit()
+    return {"message": f"Mobil {nama} berhasil dihapus permanen"}
 
 @app.get("/")
 def read_root():
