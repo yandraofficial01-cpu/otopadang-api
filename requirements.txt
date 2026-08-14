@@ -9,4 +9,5 @@ email-validator==2.3.0
 bcrypt==4.2.1
 passlib[bcrypt]==1.7.4
 pydantic==2.13.4
-python-jose[cryptography] # <- TAMBAHIN INI
+python-jose[cryptography]
+python-slugify
