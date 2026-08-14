@@ -4,19 +4,22 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from database import get_db
-from models import Car, User, Showroom # TAMBAH SHOWROOM
+from models import Car, User, Showroom
 from schemas import CarCreate, CarResponse
 from dependencies import get_current_user
 
 router = APIRouter(prefix="/mobil", tags=["Cars"])
 
-# 1. PUBLIK INDUK: BUAT otopadang.com
+# 1. PUBLIK INDUK
 @router.get("/all-public", response_model=List[CarResponse])
 def get_all_cars_public(db: Session = Depends(get_db)):
-    results = db.query(Car, Showroom.nama_showroom.label("showroom_nama"), Showroom.wa_number.label("wa_showroom")) \
-     .outerjoin(Showroom, Car.showroom_id == Showroom.id) \ # JOIN KE SHOWROOM BUKAN USER
-     .filter(Car.status.in_(['approved', 'ready'])) \
-     .order_by(Car.created_at.desc()).all()
+    results = (
+        db.query(Car, Showroom.nama_showroom.label("showroom_nama"), Showroom.wa_number.label("wa_showroom"))
+       .outerjoin(Showroom, Car.showroom_id == Showroom.id)
+       .filter(Car.status.in_(['approved', 'ready']))
+       .order_by(Car.created_at.desc())
+       .all()
+    )
 
     mobil_list = []
     for car, showroom_nama, wa_showroom in results:
@@ -26,14 +29,16 @@ def get_all_cars_public(db: Session = Depends(get_db)):
         mobil_list.append(car_dict)
     return mobil_list
 
-# 1.5 PUBLIK ANAK: BUAT WEBSITE SHOWROOM
+# 1.5 PUBLIK ANAK
 @router.get("/showroom/{showroom_id}", response_model=List[CarResponse])
 def get_cars_by_showroom_public(showroom_id: int, db: Session = Depends(get_db)):
-    results = db.query(Car, Showroom.nama_showroom.label("showroom_nama"), Showroom.wa_number.label("wa_showroom")) \
-     .outerjoin(Showroom, Car.showroom_id == Showroom.id) \
-     .filter(Car.showroom_id == showroom_id, Car.status!= 'sold') \
-     .order_by(Car.created_at.desc()).all()
-
+    results = (
+        db.query(Car, Showroom.nama_showroom.label("showroom_nama"), Showroom.wa_number.label("wa_showroom"))
+       .outerjoin(Showroom, Car.showroom_id == Showroom.id)
+       .filter(Car.showroom_id == showroom_id, Car.status!= 'sold')
+       .order_by(Car.created_at.desc())
+       .all()
+    )
     mobil_list = []
     for car, showroom_nama, wa_showroom in results:
         car_dict = CarResponse.model_validate(car).model_dump()
@@ -54,21 +59,32 @@ def get_all_cars_dashboard(db: Session = Depends(get_db), current_user = Depends
         cars = query.filter(Car.showroom_id == showroom_id).order_by(Car.created_at.desc()).all()
     return cars
 
-# 3. DETAIL MOBIL - PUBLIC
+# 3. DETAIL MOBIL
 @router.get("/{car_id}", response_model=CarResponse)
 def get_car_detail(car_id: int, db: Session = Depends(get_db)):
-    result = db.query(Car, Showroom.nama_showroom.label("showroom_nama"), Showroom.wa_number.label("wa_showroom")) \
-     .outerjoin(Showroom, Car.showroom_id == Showroom.id) \
-     .filter(Car.id == car_id, Car.status.in_(['approved', 'ready'])) \
-     .first()
-
+    result = (
+        db.query(Car, Showroom.nama_showroom.label("showroom_nama"), Showroom.wa_number.label("wa_showroom"))
+       .outerjoin(Showroom, Car.showroom_id == Showroom.id)
+       .filter(Car.id == car_id, Car.status.in_(['approved', 'ready']))
+       .first()
+    )
     if not result:
         raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
-
     car, showroom_nama, wa_showroom = result
     car_dict = CarResponse.model_validate(car).model_dump()
     car_dict['showroom_nama'] = showroom_nama or "Admin Pusat"
     car_dict['wa_showroom'] = wa_showroom or "62812PUSAT"
     return car_dict
 
-# 4. 5. 6. CREATE UPDATE DELETE TETAP KODE LU
+# 4. 5. 6. CREATE UPDATE DELETE TETAP PUNYA LU
+@router.post("/", response_model=CarResponse, status_code=201)
+async def create_car(car_data: CarCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    pass
+
+@router.put("/{car_id}", response_model=CarResponse)
+async def update_car(car_id: int, car_data: CarCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    pass
+
+@router.delete("/{car_id}")
+def delete_car(car_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    pass
