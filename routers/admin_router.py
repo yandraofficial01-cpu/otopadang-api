@@ -28,12 +28,10 @@ def get_showrooms_pending(db: Session = Depends(get_db), current_user: models.Us
 
 @router.post("/register-showroom", response_model=schemas.ShowroomResponse)
 def register_showroom_manual(showroom: schemas.ShowroomCreate, db: Session = Depends(get_db)): # <-- PUBLIK, TANPA LOGIN
-    # 1. Cek subdomain udah ada belum
     db_showroom = db.query(models.Showroom).filter(models.Showroom.subdomain == showroom.subdomain).first()
     if db_showroom:
         raise HTTPException(status_code=400, detail="Subdomain sudah dipakai")
 
-    # 2. Cek email udah ada belum
     db_user = db.query(models.User).filter(models.User.email == showroom.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email sudah terdaftar")
@@ -41,7 +39,6 @@ def register_showroom_manual(showroom: schemas.ShowroomCreate, db: Session = Dep
     hashed_password = hash_password(showroom.password)
 
     try:
-        # 3. Bikin showroom dulu
         new_showroom = models.Showroom(
             nama_showroom=showroom.nama_showroom,
             subdomain=showroom.subdomain,
@@ -49,7 +46,7 @@ def register_showroom_manual(showroom: schemas.ShowroomCreate, db: Session = Dep
             alamat=showroom.alamat,
             deskripsi=showroom.deskripsi,
             logo=showroom.logo,
-            status="pending", # Biar di approve admin dulu
+            status="pending",
             status_bayar="trial",
             paket="Free"
         )
@@ -57,7 +54,6 @@ def register_showroom_manual(showroom: schemas.ShowroomCreate, db: Session = Dep
         db.commit()
         db.refresh(new_showroom)
 
-        # 4. Bikin user admin showroom nya
         new_user = models.User(
             showroom_id=new_showroom.id,
             email=showroom.email,
@@ -70,7 +66,7 @@ def register_showroom_manual(showroom: schemas.ShowroomCreate, db: Session = Dep
         db.commit()
         
     except Exception as e:
-        db.rollback() # <-- PENTING: kalau gagal, hapus semua
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Gagal daftar: {str(e)}")
 
     return new_showroom
@@ -94,11 +90,23 @@ def set_premium(showroom_id: int, db: Session = Depends(get_db), current_user: m
     return {"message": f"Showroom {showroom.nama_showroom} jadi Premium"}
 
 # ===============================
-# 2. MOBIL
+# 2. MOBIL - UDAH FIX JOIN SHOWROOM
 # ===============================
 @router.get("/mobil", response_model=list[schemas.MobilResponse])
 def get_all_mobil_admin(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
-    return db.query(models.Car).all()
+    # JOIN ke tabel User biar dapat nama showroom
+    results = db.query(models.Car, models.User.name.label("showroom_nama")).\
+        outerjoin(models.User, models.Car.showroom_id == models.User.showroom_id).\
+        filter(models.Car.status == 'pending').\ # <--- hapus ini kalau mau tampil semua status
+        order_by(models.Car.id.desc()).all()
+
+    mobil_list = []
+    for car, showroom_nama in results:
+        mobil_dict = schemas.MobilResponse.model_validate(car).model_dump()
+        mobil_dict['showroom_nama'] = showroom_nama or "Admin Pusat"
+        mobil_list.append(mobil_dict)
+    
+    return mobil_list
 
 @router.put("/mobil/{mobil_id}")
 def update_mobil_status(mobil_id: int, data: dict, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
@@ -110,7 +118,7 @@ def update_mobil_status(mobil_id: int, data: dict, db: Session = Depends(get_db)
     return {"message": f"Status mobil {mobil_id} diupdate"}
 
 # ===============================
-# 3. RUMAH - FIX DOBEL ROUTE BIAR FE LAMA & BARU JALAN
+# 3. RUMAH
 # ===============================
 @router.get("/rumah", response_model=list[schemas.RumahResponse])
 def get_all_rumah_admin(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
