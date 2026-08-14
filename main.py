@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 import models 
-from database import engine, get_db # <--- PASTIIN get_db ADA DI database.py
+from database import engine, get_db
 
 from routers.admin_router import router as admin_router 
 from routers import cars, houses, blog, ai_router, auth_router, showroom
@@ -38,7 +38,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Biarin aja kalau masih ada foto lama
 os.makedirs("static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -51,6 +50,12 @@ app.include_router(blog.router)
 app.include_router(ai_router.router)
 
 # ========== ENDPOINT ADMIN BARU ==========
+# 0. AMBIL SEMUA MOBIL BUAT ADMIN <-- INI YG KURANG
+@app.get("/admin/mobil")
+def get_all_mobil(db: Session = Depends(get_db)):
+    mobils = db.query(models.Car).order_by(models.Car.created_at.desc()).all()
+    return mobils
+
 # 1. APPROVE MOBIL
 @app.put("/admin/mobil/{mobil_id}/approve")
 def approve_mobil(mobil_id: int, db: Session = Depends(get_db)):
@@ -71,7 +76,7 @@ def sold_mobil(mobil_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
     
     mobil.status = "sold"
-    mobil.sold_at = datetime.utcnow() # catat tanggal laku
+    mobil.sold_at = datetime.utcnow()
     db.commit()
     db.refresh(mobil)
     return {"message": "Mobil ditandai SOLD", "data": mobil}
