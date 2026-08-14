@@ -2,8 +2,6 @@ from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 from datetime import datetime, date
 
-# HAPUS SEMUA ENUM. GA DIPAKE LAGI BIAR GA RIBUT
-
 # ========== AUTH ==========
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -36,9 +34,9 @@ class ShowroomResponse(BaseModel):
     deskripsi: Optional[str] = None
     logo: Optional[str] = None
     wa_number: str
-    paket: str # <-- UDAH DIUBAH JADI str
-    status_bayar: str # <-- UDAH DIUBAH JADI str
-    status: str # <-- UDAH DIUBAH JADI str
+    paket: str
+    status_bayar: str
+    status: str
 
     class Config:
         from_attributes = True
@@ -59,7 +57,7 @@ class CarCreate(BaseModel):
     tipe: Optional[str] = None
     lokasi: Optional[str] = None
     deskripsi: Optional[str] = None
-    foto_url_1: Optional[str] = None
+    foto_url_1: Optional[str] = None # <--- INI FOTONYA
     foto_url_2: Optional[str] = None
     foto_url_3: Optional[str] = None
     foto_url_4: Optional[str] = None
@@ -69,12 +67,13 @@ class CarCreate(BaseModel):
     foto_url_8: Optional[str] = None
     video_url: Optional[str] = None
     no_wa_showroom: Optional[str] = None
-    status: str = "pending" # <-- UBAH JADI str
+    status: str = "pending"
 
 class CarResponse(CarCreate):
     id: int
     showroom_id: int
     created_at: datetime
+    showroom_nama: Optional[str] = None # <--- TAMBAH INI BUAT ADMIN PANEL
     class Config:
         from_attributes = True
 
@@ -104,7 +103,7 @@ class RumahCreate(BaseModel):
     foto_url_8: Optional[str] = None
     video_url: Optional[str] = None
     wa_number: Optional[str] = "628979879518"
-    status: str = "available" # <-- UBAH JADI str
+    status: str = "available"
 
 class RumahResponse(RumahCreate):
     id: int
@@ -123,7 +122,7 @@ class BlogBase(BaseModel):
     konten: str
     gambar: Optional[str] = None
     penulis: Optional[str] = "Admin"
-    status: str = "publish" # <-- UBAH JADI str
+    status: str = "publish"
 
 class BlogCreate(BlogBase):
     pass
@@ -139,7 +138,7 @@ class LeadRumahCreate(BaseModel):
     house_id: int
     nama_buyer: str
     no_wa_buyer: str
-    status: str = "Tanya" # <-- UBAH JADI str
+    status: str = "Tanya"
     fee_persen: Optional[float] = 2.00
     nilai_fee: Optional[int] = None
     tgl_akad: Optional[date] = None
