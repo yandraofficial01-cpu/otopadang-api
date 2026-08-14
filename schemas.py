@@ -57,7 +57,7 @@ class CarCreate(BaseModel):
     tipe: Optional[str] = None
     lokasi: Optional[str] = None
     deskripsi: Optional[str] = None
-    foto_url_1: Optional[str] = None # <--- INI FOTONYA
+    foto_url_1: Optional[str] = None
     foto_url_2: Optional[str] = None
     foto_url_3: Optional[str] = None
     foto_url_4: Optional[str] = None
@@ -73,7 +73,7 @@ class CarResponse(CarCreate):
     id: int
     showroom_id: int
     created_at: datetime
-    showroom_nama: Optional[str] = None # <--- TAMBAH INI BUAT ADMIN PANEL
+    showroom_nama: Optional[str] = None
     class Config:
         from_attributes = True
 
@@ -115,21 +115,43 @@ HouseCreate = RumahCreate
 HouseResponse = RumahResponse
 RumahBase = RumahCreate
 
-# ========== BLOG ==========
+# ========== BLOG - VERSI BARU GOOGLE NEWS READY ==========
 class BlogBase(BaseModel):
     judul: str
-    slug: str
     konten: str
-    gambar: Optional[str] = None
-    penulis: Optional[str] = "Admin"
-    status: str = "publish"
+    gambar_cover: Optional[str] = None
+    penulis: str
+    kategori: str = "Tips"
+    tags: Optional[str] = None
+    meta_description: Optional[str] = None
+    is_sponsored: bool = False
+    nama_pengiklan: Optional[str] = None
+    link_pengiklan: Optional[str] = None
+    status: str = "draft"
 
 class BlogCreate(BlogBase):
     pass
 
+class BlogUpdate(BaseModel):
+    judul: Optional[str] = None
+    konten: Optional[str] = None
+    gambar_cover: Optional[str] = None
+    penulis: Optional[str] = None
+    kategori: Optional[str] = None
+    tags: Optional[str] = None
+    meta_description: Optional[str] = None
+    is_sponsored: Optional[bool] = None
+    nama_pengiklan: Optional[str] = None
+    link_pengiklan: Optional[str] = None
+    status: Optional[str] = None
+
 class BlogResponse(BlogBase):
     id: int
+    slug: str
+    published_at: Optional[datetime] = None
     created_at: datetime
+    updated_at: datetime
+    
     class Config:
         from_attributes = True
 
