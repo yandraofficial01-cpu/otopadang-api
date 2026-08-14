@@ -27,7 +27,7 @@ def get_showrooms_pending(db: Session = Depends(get_db), current_user: models.Us
     return db.query(models.Showroom).filter(models.Showroom.status == "pending").all()
 
 @router.post("/register-showroom", response_model=schemas.ShowroomResponse)
-def register_showroom_manual(showroom: schemas.ShowroomCreate, db: Session = Depends(get_db)): # <-- PUBLIK, TANPA LOGIN
+def register_showroom_manual(showroom: schemas.ShowroomCreate, db: Session = Depends(get_db)):
     db_showroom = db.query(models.Showroom).filter(models.Showroom.subdomain == showroom.subdomain).first()
     if db_showroom:
         raise HTTPException(status_code=400, detail="Subdomain sudah dipakai")
@@ -95,10 +95,10 @@ def set_premium(showroom_id: int, db: Session = Depends(get_db), current_user: m
 @router.get("/mobil", response_model=list[schemas.MobilResponse])
 def get_all_mobil_admin(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
     # JOIN ke tabel User biar dapat nama showroom
-    results = db.query(models.Car, models.User.name.label("showroom_nama")).\
-        outerjoin(models.User, models.Car.showroom_id == models.User.showroom_id).\
-        filter(models.Car.status == 'pending').\ # <--- hapus ini kalau mau tampil semua status
-        order_by(models.Car.id.desc()).all()
+    results = db.query(models.Car, models.User.name.label("showroom_nama")) \
+        .outerjoin(models.User, models.Car.showroom_id == models.User.showroom_id) \
+        .filter(models.Car.status == 'pending') \
+        .order_by(models.Car.id.desc()).all()
 
     mobil_list = []
     for car, showroom_nama in results:
