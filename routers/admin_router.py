@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from typing import List
 import bcrypt
 import models, schemas 
 from database import get_db
 from routers.auth_router import get_current_user
+from datetime import datetime
+from slugify import slugify
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -11,18 +14,38 @@ def hash_password(password: str):
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 def require_admin(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
-    if current_user.showroom_id is not None:
+    # FIX: Cek role biar aman
+    if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Akses khusus Admin Pusat")
     return current_user
 
 # ===============================
+# 0. DASHBOARD STATS
+# ===============================
+@router.get("/dashboard-stats")
+def get_dashboard_stats(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    total_mobil = db.query(models.Car).count()
+    mobil_pending = db.query(models.Car).filter(models.Car.status == "pending").count()
+    total_showroom = db.query(models.Showroom).count()
+    total_rumah = db.query(models.House).count()
+    total_blog = db.query(models.Blog).count()
+    
+    return {
+        "total_mobil": total_mobil,
+        "mobil_pending": mobil_pending,
+        "total_showroom": total_showroom,
+        "total_rumah": total_rumah,
+        "total_blog": total_blog
+    }
+
+# ===============================
 # 1. SHOWROOM
 # ===============================
-@router.get("/showrooms", response_model=list[schemas.ShowroomResponse])
+@router.get("/showrooms", response_model=List[schemas.ShowroomResponse])
 def get_all_showrooms(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
     return db.query(models.Showroom).all()
 
-@router.get("/showrooms-pending", response_model=list[schemas.ShowroomResponse])
+@router.get("/showrooms-pending", response_model=List[schemas.ShowroomResponse])
 def get_showrooms_pending(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
     return db.query(models.Showroom).filter(models.Showroom.status == "pending").all()
 
@@ -90,11 +113,11 @@ def set_premium(showroom_id: int, db: Session = Depends(get_db), current_user: m
     return {"message": f"Showroom {showroom.nama_showroom} jadi Premium"}
 
 # ===============================
-# 2. MOBIL - UDAH FIX: AMBIL SEMUA STATUS
+# 2. MOBIL - FIX: TAMPILKAN SEMUA TERMASUK SOLDOUT
 # ===============================
-@router.get("/mobil", response_model=list[schemas.MobilResponse])
+@router.get("/mobil", response_model=List[schemas.MobilResponse])
 def get_all_mobil_admin(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
-    # JOIN ke tabel User biar dapat nama showroom. AMBIL SEMUA, JANGAN FILTER PENDING
+    # FIX: AMBIL SEMUA STATUS. JANGAN FILTER. Biar soldout tetap tampil
     results = db.query(models.Car, models.User.name.label("showroom_nama")) \
         .outerjoin(models.User, models.Car.showroom_id == models.User.showroom_id) \
         .order_by(models.Car.id.desc()).all()
@@ -107,8 +130,7 @@ def get_all_mobil_admin(db: Session = Depends(get_db), current_user: models.User
     
     return mobil_list
 
-# Tambahan: endpoint khusus buat pending doang
-@router.get("/mobil-pending", response_model=list[schemas.MobilResponse])
+@router.get("/mobil-pending", response_model=List[schemas.MobilResponse])
 def get_mobil_pending_admin(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
     results = db.query(models.Car, models.User.name.label("showroom_nama")) \
         .outerjoin(models.User, models.Car.showroom_id == models.User.showroom_id) \
@@ -141,10 +163,11 @@ def delete_mobil(mobil_id: int, db: Session = Depends(get_db), current_user: mod
     return {"message": "Mobil dihapus"}
 
 # ===============================
-# 3. RUMAH
+# 3. RUMAH - FIX: BISA SOLDOUT & BISA DELETE
 # ===============================
-@router.get("/rumah", response_model=list[schemas.RumahResponse])
+@router.get("/rumah", response_model=List[schemas.RumahResponse])
 def get_all_rumah_admin(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    # FIX: AMBIL SEMUA. Biar yg status='terjual' tetap tampil
     return db.query(models.House).order_by(models.House.id.desc()).all()
 
 @router.post("/rumah", response_model=schemas.RumahResponse)
@@ -158,6 +181,7 @@ def upload_rumah(data: schemas.RumahCreate, db: Session = Depends(get_db), curre
 
 @router.put("/rumah/{rumah_id}")
 def update_rumah_status(rumah_id: int, data: dict, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    # FIX: Bisa update status jadi 'terjual'
     rumah = db.query(models.House).filter(models.House.id == rumah_id).first()
     if not rumah: raise HTTPException(status_code=404, detail="Rumah tidak ditemukan")
     for key, value in data.items():
@@ -167,6 +191,7 @@ def update_rumah_status(rumah_id: int, data: dict, db: Session = Depends(get_db)
 
 @router.delete("/rumah/{rumah_id}")
 def delete_rumah(rumah_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    # FIX: INI YG KEMARIN BELUM ADA
     rumah = db.query(models.House).filter(models.House.id == rumah_id).first()
     if not rumah: raise HTTPException(status_code=404, detail="Rumah tidak ditemukan")
     db.delete(rumah)
@@ -174,28 +199,46 @@ def delete_rumah(rumah_id: int, db: Session = Depends(get_db), current_user: mod
     return {"message": "Rumah dihapus"}
 
 # ===============================
-# 4. BLOG
+# 4. BLOG - FIX: ANTI ERROR 500
 # ===============================
-@router.get("/blog")
+@router.get("/blog", response_model=List[schemas.BlogResponse])
 def get_all_blog_admin(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
-    return db.query(models.Blog).all()
+    return db.query(models.Blog).order_by(models.Blog.created_at.desc().nullslast()).all()
 
-@router.post("/blog")
+@router.post("/blog", response_model=schemas.BlogResponse)
 def create_blog(data: dict, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
-    new_blog = models.Blog(**data)
+    new_blog = models.Blog(
+        **data,
+        slug=slugify(data.get("judul")),
+        created_at=datetime.utcnow(),
+        penulis=current_user.name or "Admin"
+    )
     db.add(new_blog)
     db.commit()
     db.refresh(new_blog)
     return new_blog
 
-@router.put("/blog/{blog_id}")
+@router.put("/blog/{blog_id}/publish", response_model=schemas.BlogResponse)
+def publish_blog(blog_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    blog = db.query(models.Blog).filter(models.Blog.id == blog_id).first()
+    if not blog: raise HTTPException(status_code=404, detail="Blog tidak ditemukan")
+    blog.status = "published"
+    blog.published_at = datetime.utcnow()
+    db.commit()
+    db.refresh(blog)
+    return blog
+
+@router.put("/blog/{blog_id}", response_model=schemas.BlogResponse)
 def update_blog(blog_id: int, data: dict, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
     blog = db.query(models.Blog).filter(models.Blog.id == blog_id).first()
     if not blog: raise HTTPException(status_code=404, detail="Blog tidak ditemukan")
+    if "judul" in data:
+        data["slug"] = slugify(data["judul"])
     for k,v in data.items():
         setattr(blog, k, v)
     db.commit()
-    return {"message": "Blog diupdate"}
+    db.refresh(blog)
+    return blog
 
 @router.delete("/blog/{blog_id}")
 def delete_blog(blog_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
