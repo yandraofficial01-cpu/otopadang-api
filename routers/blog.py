@@ -12,20 +12,32 @@ router = APIRouter(prefix="/blog", tags=["Blog"])
 @router.get("/", response_model=List[schemas.BlogResponse])
 def get_all_blog(db: Session = Depends(get_db)):
     """Public: Liat semua blog yg published"""
-    blogs = db.query(models.Blog).filter(models.Blog.status == "published").order_by(models.Blog.published_at.desc()).all()
+    # FIX 1: Tambah filter created_at not null + nullslast
+    blogs = db.query(models.Blog).filter(
+        models.Blog.status == "published",
+        models.Blog.created_at.isnot(None) # cegah data rusak
+    ).order_by(models.Blog.published_at.desc().nullslast()).all()
     return blogs
 
-@router.get("/admin", response_model=List[schemas.BlogResponse])
+@router.get("/admin", response_model=List[schemas.BlogResponse]) # <-- INI BIARIN /blog/admin
 def get_all_blog_admin(db: Session = Depends(get_db), current_user: dict = Depends(require_admin)):
     """Admin: Liat semua blog termasuk draft"""
-    blogs = db.query(models.Blog).order_by(models.Blog.created_at.desc()).all()
+    # FIX 2: Tambah nullslast
+    blogs = db.query(models.Blog).order_by(models.Blog.created_at.desc().nullslast()).all()
     return blogs
 
 @router.post("/", response_model=schemas.BlogResponse)
 def create_blog(data: schemas.BlogCreate, db: Session = Depends(get_db), current_user: dict = Depends(require_admin)):
     new_slug = slugify(data.judul)
     published_at = datetime.utcnow() if data.status == "published" else None
-    new_blog = models.Blog(**data.model_dump(), slug=new_slug, published_at=published_at)
+    
+    # FIX 3: WAJIB ISI created_at manual
+    new_blog = models.Blog(
+        **data.model_dump(), 
+        slug=new_slug, 
+        published_at=published_at,
+        created_at=datetime.utcnow() # <-- TAMBAH INI
+    )
     db.add(new_blog)
     db.commit()
     db.refresh(new_blog)
