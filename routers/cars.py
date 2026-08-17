@@ -1,19 +1,24 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-import models, schemas 
+import models, schemas
 from database import get_db
-from .auth_router import get_current_user # PAKAI INI BUKAN ADMIN
+from.auth_router import get_current_user
 
 router = APIRouter(prefix="/cars", tags=["Cars Showroom"])
 
-@router.post("/")
+@router.post("/", response_model=schemas.MobilResponse)
 def create_car(car_data: schemas.MobilCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    if current_user.role != "showroom":
+    if current_user.role!= "showroom" or not current_user.showroom_id:
         raise HTTPException(status_code=403, detail="Cuma showroom")
-    return {"msg": "Showroom nambah mobil baru"}
+    db_car = models.Car(**car_data.model_dump(), showroom_id=current_user.showroom_id, no_wa_showroom=current_user.showroom.wa_number)
+    db.add(db_car); db.commit(); db.refresh(db_car)
+    return db_car
 
-@router.put("/{mobil_id}")
-def update_car(mobil_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    if current_user.role != "showroom":
-        raise HTTPException(status_code=403, detail="Cuma showroom")
-    return {"msg": f"Showroom edit harga/spesifikasi mobil {mobil_id}"}
+@router.put("/{mobil_id}", response_model=schemas.MobilResponse)
+def update_car(mobil_id: int, car_data: schemas.MobilUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role!= "showroom": raise HTTPException(status_code=403, detail="Cuma showroom")
+    db_car = db.query(models.Car).filter(models.Car.id == mobil_id, models.Car.showroom_id == current_user.showroom_id).first()
+    if not db_car: raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
+    for key, value in car_data.model_dump(exclude_unset=True).items(): setattr(db_car, key, value)
+    db.commit(); db.refresh(db_car)
+    return db_car
