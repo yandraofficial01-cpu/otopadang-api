@@ -1,46 +1,47 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+import models, schemas 
 from database import get_db
-from models import Showroom, User, Car  # UDAH GANTI INI
-import schemas 
-from routers.auth_router import ADMIN_EMAILS # Cuma ambil ADMIN_EMAILS dari sini
-from dependencies import get_current_user, require_admin # AMBIL DARI SINI
+from .admin_auth import require_admin, hash_password
 
-router = APIRouter(prefix="/showroom", tags=["Showroom"])
+router = APIRouter(prefix="/admin", tags=["Admin Showroom"])
 
-# PALANG PINTU BUAT HALAMAN PUBLIK
-def get_active_showroom(subdomain: str, db: Session = Depends(get_db)):
-    showroom = db.query(Showroom).filter(Showroom.subdomain == subdomain).first()
-    if not showroom: raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
-    if showroom.status != "approved": raise HTTPException(status_code=403, detail="Showroom belum di approve admin")
-    if showroom.status_bayar == "expired":
-        raise HTTPException(status_code=403, detail="Akun showroom ini sedang disuspend")
-    return showroom
+@router.get("/showrooms", response_model=list[schemas.ShowroomResponse])
+def get_all_showrooms(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    return db.query(models.Showroom).all()
 
-# 1. ENDPOINT BUAT ADMIN DAFTARIN MANUAL - UDAH DIKUNCI
-@router.post("/", response_model=schemas.ShowroomResponse)
-def create_showroom(showroom: schemas.ShowroomCreate, db: Session = Depends(get_db), admin = Depends(require_admin)):
-    cek = db.query(Showroom).filter(Showroom.subdomain == showroom.subdomain).first()
-    if cek: raise HTTPException(status_code=400, detail="Subdomain sudah dipakai")
-    
-    new_showroom = Showroom(**showroom.model_dump()) # .dict() udah deprecated di pydantic v2, ganti .model_dump()
-    db.add(new_showroom)
-    db.commit()
-    db.refresh(new_showroom)
+@router.get("/showrooms-pending", response_model=list[schemas.ShowroomResponse])
+def get_showrooms_pending(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    return db.query(models.Showroom).filter(models.Showroom.status == "pending").all()
+
+@router.post("/register-showroom", response_model=schemas.ShowroomResponse)
+def register_showroom_manual(showroom: schemas.ShowroomCreate, db: Session = Depends(get_db)):
+    db_showroom = db.query(models.Showroom).filter(models.Showroom.subdomain == showroom.subdomain).first()
+    if db_showroom: raise HTTPException(status_code=400, detail="Subdomain sudah dipakai")
+    db_user = db.query(models.User).filter(models.User.email == showroom.email).first()
+    if db_user: raise HTTPException(status_code=400, detail="Email sudah terdaftar")
+
+    hashed_password = hash_password(showroom.password)
+    try:
+        new_showroom = models.Showroom(**showroom.model_dump(exclude={"password", "email"}), status="pending", status_bayar="trial", paket="Free")
+        db.add(new_showroom); db.commit(); db.refresh(new_showroom)
+
+        new_user = models.User(showroom_id=new_showroom.id, email=showroom.email, password=hashed_password, name=showroom.nama_showroom, role='showroom', status='active')
+        db.add(new_user); db.commit()
+    except Exception as e:
+        db.rollback(); raise HTTPException(status_code=500, detail=f"Gagal daftar: {str(e)}")
     return new_showroom
 
-# 2. ENDPOINT BUAT ADMIN APPROVE
-@router.put("/{id}/approve", response_model=schemas.ShowroomResponse)
-def approve_showroom(id: int, db: Session = Depends(get_db), admin = Depends(require_admin)):
-    showroom = db.query(Showroom).filter(Showroom.id == id).first()
+@router.put("/showrooms/{showroom_id}/approve")
+def approve_showroom(showroom_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    showroom = db.query(models.Showroom).filter(models.Showroom.id == showroom_id).first()
     if not showroom: raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
-    showroom.status = "approved"
-    db.commit()
-    db.refresh(showroom)
-    return showroom
+    showroom.status = "approved"; showroom.status_bayar = "aktif"; db.commit()
+    return {"message": f"Showroom {showroom.nama_showroom} berhasil di approve"}
 
-# 3. KODE HALAMAN PUBLIK
-@router.get("/{subdomain}")
-def get_public_showroom(showroom = Depends(get_active_showroom), db: Session = Depends(get_db)):
-    cars = db.query(Car).filter(Car.showroom_id == showroom.id, Car.status == 'approved').all()
-    return {**schemas.ShowroomResponse.from_orm(showroom).dict(), "cars": cars}
+@router.put("/showrooms/{showroom_id}/premium")
+def set_premium(showroom_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    showroom = db.query(models.Showroom).filter(models.Showroom.id == showroom_id).first()
+    if not showroom: raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
+    showroom.paket = "Premium"; showroom.status_bayar = "aktif"; db.commit()
+    return {"message": f"Showroom {showroom.nama_showroom} jadi Premium"}
