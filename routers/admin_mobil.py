@@ -1,16 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-import models, schemas 
+import models, schemas
 from database import get_db
-from .admin_auth import require_admin
+from.admin_auth import require_admin
 
-router = APIRouter(prefix="/admin/mobil", tags=["Admin Mobil"]) # <--- prefix dibenerin
+router = APIRouter(prefix="/admin/mobil", tags=["Admin Mobil"])
 
-@router.get("/", response_model=list[schemas.MobilResponse]) # <--- jadi "/" aja
+@router.get("/", response_model=list[schemas.MobilResponse])
 def get_all_mobil_admin(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
-    results = db.query(models.Car, models.User.name.label("showroom_nama")) \
-        .outerjoin(models.User, models.Car.showroom_id == models.User.showroom_id) \
-        .order_by(models.Car.id.desc()).all()
+    results = db.query(models.Car, models.Showroom.nama_showroom.label("showroom_nama")) \
+       .outerjoin(models.Showroom, models.Car.showroom_id == models.Showroom.id) \
+       .order_by(models.Car.id.desc()).all()
     mobil_list = []
     for car, showroom_nama in results:
         mobil_dict = schemas.MobilResponse.model_validate(car).model_dump()
@@ -18,11 +18,11 @@ def get_all_mobil_admin(db: Session = Depends(get_db), current_user: models.User
         mobil_list.append(mobil_dict)
     return mobil_list
 
-@router.get("/pending", response_model=list[schemas.MobilResponse]) # <--- jadi "/pending"
+@router.get("/pending", response_model=list[schemas.MobilResponse])
 def get_mobil_pending_admin(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
-    results = db.query(models.Car, models.User.name.label("showroom_nama")) \
-        .outerjoin(models.User, models.Car.showroom_id == models.User.showroom_id) \
-        .filter(models.Car.status == 'pending').order_by(models.Car.id.desc()).all()
+    results = db.query(models.Car, models.Showroom.nama_showroom.label("showroom_nama")) \
+       .outerjoin(models.Showroom, models.Car.showroom_id == models.Showroom.id) \
+       .filter(models.Car.status == 'pending').order_by(models.Car.id.desc()).all()
     mobil_list = []
     for car, showroom_nama in results:
         mobil_dict = schemas.MobilResponse.model_validate(car).model_dump()
@@ -35,7 +35,8 @@ def update_mobil_status(mobil_id: int, data: dict, db: Session = Depends(get_db)
     mobil = db.query(models.Car).filter(models.Car.id == mobil_id).first()
     if not mobil: raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
     for key, value in data.items(): setattr(mobil, key, value)
-    db.commit(); return {"message": f"Status mobil {mobil_id} diupdate"}
+    db.commit(); db.refresh(mobil)
+    return {"message": f"Status mobil {mobil_id} diupdate", "data": mobil}
 
 @router.delete("/{mobil_id}")
 def delete_mobil(mobil_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
