@@ -69,6 +69,34 @@ class CarCreate(BaseModel):
     no_wa_showroom: Optional[str] = None
     status: str = "pending"
 
+class MobilUpdate(BaseModel): # <-- INI YG BARU DITAMBAH
+    nama_mobil: Optional[str] = None
+    merek: Optional[str] = None
+    tahun: Optional[int] = None
+    harga: Optional[int] = None
+    harga_kredit: Optional[int] = None
+    angsuran: Optional[int] = None
+    lama_angsuran: Optional[int] = None
+    kilometer: Optional[int] = None
+    transmisi: Optional[str] = None
+    bahan_bakar: Optional[str] = None
+    warna: Optional[str] = None
+    tipe: Optional[str] = None
+    lokasi: Optional[str] = None
+    deskripsi: Optional[str] = None
+    status: Optional[str] = None
+    foto_url_1: Optional[str] = None
+    foto_url_2: Optional[str] = None
+    foto_url_3: Optional[str] = None
+    foto_url_4: Optional[str] = None
+    foto_url_5: Optional[str] = None
+    foto_url_6: Optional[str] = None
+    foto_url_7: Optional[str] = None
+    foto_url_8: Optional[str] = None
+    video_url: Optional[str] = None
+    class Config:
+        extra = "forbid"
+
 class CarResponse(CarCreate):
     id: int
     showroom_id: int
@@ -151,7 +179,7 @@ class BlogResponse(BlogBase):
     published_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True
 
