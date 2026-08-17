@@ -1,16 +1,17 @@
 import os
 from datetime import datetime
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware 
-from sqlalchemy.orm import Session
 
 import models 
-from database import engine, get_db
+from database import engine
 
-# IMPORT YG BARU UDAH DIPECAH
-from routers import cars, houses, blog, ai_router, auth_router, showroom
-from routers import admin_mobil, admin_rumah, admin_showroom, admin_blog # <-- GANTI INI
+# IMPORT ROUTER SHOWROOM + UMUM
+from routers import cars, ai_router, auth_router
+
+# IMPORT ROUTER ADMIN 
+from routers import admin_mobil, admin_rumah, admin_showroom, admin_blog
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -42,24 +43,16 @@ app.add_middleware(
 os.makedirs("static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# DAFTAR ROUTER
-app.include_router(auth_router.router)
-app.include_router(showroom.router)
-app.include_router(cars.router)
-app.include_router(houses.router) 
-app.include_router(blog.router)
-app.include_router(ai_router.router)
+# DAFTAR ROUTER SHOWROOM + UMUM
+app.include_router(auth_router.router)  # /login /register
+app.include_router(cars.router)         # /cars buat showroom upload/edit
+app.include_router(ai_router.router)    # /ai
 
-# ADMIN ROUTER YG UDAH DIPECAH
-app.include_router(admin_showroom.router)
-app.include_router(admin_mobil.router)
-app.include_router(admin_rumah.router)
-app.include_router(admin_blog.router)
-
-# HAPUS SEMUA ENDPOINT ADMIN MANUAL DI SINI
-# @app.get("/admin/mobil") <-- HAPUS
-# @app.put("/admin/mobil/{mobil_id}/approve") <-- HAPUS
-# Karena udah ada di admin_mobil.py
+# DAFTAR ROUTER ADMIN
+app.include_router(admin_showroom.router) # /admin/showroom
+app.include_router(admin_mobil.router)    # /admin/mobil approve/soldout/delete
+app.include_router(admin_rumah.router)    # /admin/rumah
+app.include_router(admin_blog.router)     # /admin/blog
 
 @app.get("/")
 def read_root():
