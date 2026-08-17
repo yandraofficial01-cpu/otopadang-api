@@ -1,28 +1,29 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+import models, schemas 
 from database import get_db
-from models import House, LeadRumah
+from .admin_auth import require_admin
 
-router = APIRouter(prefix="/rumah", tags=["Rumah"]) # TAMBAH PREFIX BIAR URL NYA /rumah
+router = APIRouter(prefix="/admin", tags=["Admin Rumah"])
 
-@router.get("/")
-def get_all_houses(db: Session = Depends(get_db)):
-    # HAPUS FILTER STATUS. Tampilkan semua data rumah, urut terbaru
-    houses = db.query(House).order_by(House.created_at.desc()).all()
-    return houses
+@router.get("/rumah", response_model=list[schemas.RumahResponse])
+def get_all_rumah_admin(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    return db.query(models.House).order_by(models.House.id.desc()).all()
 
-@router.get("/{house_id}")
-def get_house(house_id: int, db: Session = Depends(get_db)):
-    house = db.query(House).filter(House.id == house_id).first()
-    if not house:
-        raise HTTPException(status_code=404, detail="Rumah tidak ditemukan")
-    return house
+@router.post("/rumah", response_model=schemas.RumahResponse)
+@router.post("/upload-rumah", response_model=schemas.RumahResponse)
+def upload_rumah(data: schemas.RumahCreate, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    new_rumah = models.House(**data.model_dump()); db.add(new_rumah); db.commit(); db.refresh(new_rumah); return new_rumah
 
-@router.post("/{house_id}/lead")
-def create_lead(house_id: int, lead_data: dict, db: Session = Depends(get_db)):
-    lead_data['house_id'] = house_id
-    new_lead = LeadRumah(**lead_data)
-    db.add(new_lead)
-    db.commit()
-    db.refresh(new_lead)
-    return {"message": "Lead berhasil dikirim", "data": new_lead}
+@router.put("/rumah/{rumah_id}")
+def update_rumah_status(rumah_id: int, data: dict, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    rumah = db.query(models.House).filter(models.House.id == rumah_id).first()
+    if not rumah: raise HTTPException(status_code=404, detail="Rumah tidak ditemukan")
+    for key, value in data.items(): setattr(rumah, key, value)
+    db.commit(); return {"message": f"Status rumah diupdate"}
+
+@router.delete("/rumah/{rumah_id}")
+def delete_rumah(rumah_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    rumah = db.query(models.House).filter(models.House.id == rumah_id).first()
+    if not rumah: raise HTTPException(status_code=404, detail="Rumah tidak ditemukan")
+    db.delete(rumah); db.commit(); return {"message": "Rumah dihapus"}
