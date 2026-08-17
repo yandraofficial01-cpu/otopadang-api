@@ -1,22 +1,44 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from .admin_auth import require_admin
+import models, schemas 
 from database import get_db
+from .admin_auth import require_admin
 
-router = APIRouter(prefix="/admin/mobil", tags=["Admin Mobil"])
+router = APIRouter(prefix="/admin/mobil", tags=["Admin Mobil"]) # <--- prefix dibenerin
 
-@router.get("/")
-def get_all_cars(db: Session = Depends(get_db), admin = Depends(require_admin)):
-    return {"msg": "Admin liat semua mobil"}
+@router.get("/", response_model=list[schemas.MobilResponse]) # <--- jadi "/" aja
+def get_all_mobil_admin(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    results = db.query(models.Car, models.User.name.label("showroom_nama")) \
+        .outerjoin(models.User, models.Car.showroom_id == models.User.showroom_id) \
+        .order_by(models.Car.id.desc()).all()
+    mobil_list = []
+    for car, showroom_nama in results:
+        mobil_dict = schemas.MobilResponse.model_validate(car).model_dump()
+        mobil_dict['showroom_nama'] = showroom_nama or "Admin Pusat"
+        mobil_list.append(mobil_dict)
+    return mobil_list
 
-@router.put("/{mobil_id}/approve")
-def approve_car(mobil_id: int, db: Session = Depends(get_db), admin = Depends(require_admin)):
-    return {"msg": f"Admin approve mobil {mobil_id}"}
+@router.get("/pending", response_model=list[schemas.MobilResponse]) # <--- jadi "/pending"
+def get_mobil_pending_admin(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    results = db.query(models.Car, models.User.name.label("showroom_nama")) \
+        .outerjoin(models.User, models.Car.showroom_id == models.User.showroom_id) \
+        .filter(models.Car.status == 'pending').order_by(models.Car.id.desc()).all()
+    mobil_list = []
+    for car, showroom_nama in results:
+        mobil_dict = schemas.MobilResponse.model_validate(car).model_dump()
+        mobil_dict['showroom_nama'] = showroom_nama or "Admin Pusat"
+        mobil_list.append(mobil_dict)
+    return mobil_list
 
-@router.put("/{mobil_id}/soldout")
-def soldout_car(mobil_id: int, db: Session = Depends(get_db), admin = Depends(require_admin)):
-    return {"msg": f"Admin soldout mobil {mobil_id}"}
+@router.put("/{mobil_id}")
+def update_mobil_status(mobil_id: int, data: dict, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    mobil = db.query(models.Car).filter(models.Car.id == mobil_id).first()
+    if not mobil: raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
+    for key, value in data.items(): setattr(mobil, key, value)
+    db.commit(); return {"message": f"Status mobil {mobil_id} diupdate"}
 
 @router.delete("/{mobil_id}")
-def delete_car(mobil_id: int, db: Session = Depends(get_db), admin = Depends(require_admin)):
-    return {"msg": f"Admin delete mobil {mobil_id}"}
+def delete_mobil(mobil_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    mobil = db.query(models.Car).filter(models.Car.id == mobil_id).first()
+    if not mobil: raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
+    db.delete(mobil); db.commit(); return {"message": "Mobil dihapus"}
