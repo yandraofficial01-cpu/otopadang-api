@@ -11,3 +11,4 @@ passlib[bcrypt]==1.7.4
 pydantic==2.13.4
 python-jose[cryptography]
 python-slugify
+cloudinary==1.41.0
