@@ -1,17 +1,19 @@
 import os
 from datetime import datetime
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, APIRouter
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware 
+from sqlalchemy.orm import Session
 
 import models 
-from database import engine
+from database import engine, get_db
 
 # IMPORT ROUTER SHOWROOM + UMUM
 from routers import cars, ai_router, auth_router
 
 # IMPORT ROUTER ADMIN 
 from routers import admin_mobil, admin_rumah, admin_showroom, admin_blog
+from routers.auth_router import get_current_admin # WAJIB ADA DI auth_router
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -33,7 +35,7 @@ app.add_middleware(
         "http://localhost:3000",            
         "https://otopadang.com",             
         "https://www.otopadang.com",         
-        "https://otopadang-frontend.vercel.app", 
+        "https://otopadang-frontend.vercel.app",  # GANTI KALAU DOMAIN VERCEL LU BEDA
     ],
     allow_credentials=True,
     allow_methods=["*"], 
@@ -53,6 +55,33 @@ app.include_router(admin_showroom.router) # /admin/showroom
 app.include_router(admin_mobil.router)    # /admin/mobil approve/soldout/delete
 app.include_router(admin_rumah.router)    # /admin/rumah
 app.include_router(admin_blog.router)     # /admin/blog
+
+
+# ================== ROUTER BARU UNTUK DASHBOARD ==================
+admin_dashboard_router = APIRouter()
+
+@admin_dashboard_router.get("/admin/dashboard-stats")
+def get_dashboard_stats(db: Session = Depends(get_db), admin=Depends(get_current_admin)):
+    total_mobil = db.query(models.Car).count()
+    total_pending = db.query(models.Car).filter(models.Car.status == 'pending').count()
+    total_showroom = db.query(models.Showroom).count()
+    total_blog = db.query(models.Blog).count()
+    
+    # Ambil 5 mobil pending terbaru
+    mobil_baru_query = db.query(models.Car).filter(models.Car.status == 'pending').order_by(models.Car.created_at.desc()).limit(5).all()
+
+    return {
+        "total_mobil": total_mobil,
+        "total_pending": total_pending,
+        "total_showroom": total_showroom,
+        "total_rumah": 0,  # kalau belum ada tabel rumah
+        "total_blog": total_blog,
+        "mobil_baru": [{"id": m.id, "merk": m.merk, "tipe": m.tipe} for m in mobil_baru_query]
+    }
+
+app.include_router(admin_dashboard_router)
+# =================================================================
+
 
 @app.get("/")
 def read_root():
