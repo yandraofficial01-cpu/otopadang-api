@@ -6,8 +6,8 @@ import os
 import cloudinary
 import cloudinary.uploader
 from database import get_db
-from models import Rumah
-from.admin_auth import require_admin
+from models import Houses # <--- FIX 1: GANTI JADI Houses
+from.admin_auth import require_admin # <--- FIX 2: tambahin titik. biar relative import
 
 router = APIRouter(prefix="/admin/rumah", tags=["Admin Rumah"])
 
@@ -69,8 +69,8 @@ async def upload_rumah_foto(file: UploadFile = File(...), admin = Depends(requir
 # 2. READ - Ambil semua data rumah
 @router.get("/")
 def get_all_rumah(db: Session = Depends(get_db), admin = Depends(require_admin)):
-    rumah_list = db.query(Rumah).order_by(Rumah.id.desc()).all()
-    
+    rumah_list = db.query(Houses).order_by(Houses.id.desc()).all() # <--- FIX 3
+
     return [{
         "id": r.id,
         "nama_rumah": r.nama_rumah,
@@ -101,7 +101,7 @@ def get_all_rumah(db: Session = Depends(get_db), admin = Depends(require_admin))
 # 3. CREATE - Admin upload rumah baru
 @router.post("/")
 def create_rumah(data: RumahCreate, db: Session = Depends(get_db), admin = Depends(require_admin)):
-    new_rumah = Rumah(**data.dict())
+    new_rumah = Houses(**data.dict()) # <--- FIX 4
     db.add(new_rumah)
     db.commit()
     db.refresh(new_rumah)
@@ -110,13 +110,13 @@ def create_rumah(data: RumahCreate, db: Session = Depends(get_db), admin = Depen
 # 4. UPDATE - Admin edit rumah
 @router.put("/{rumah_id}")
 def update_rumah(rumah_id: int, data: RumahUpdate, db: Session = Depends(get_db), admin = Depends(require_admin)):
-    rumah = db.query(Rumah).filter(Rumah.id == rumah_id).first()
+    rumah = db.query(Houses).filter(Houses.id == rumah_id).first() # <--- FIX 5
     if not rumah:
         raise HTTPException(status_code=404, detail="Rumah tidak ditemukan")
-    
+
     for key, value in data.dict(exclude_unset=True).items():
         setattr(rumah, key, value)
-    
+
     db.commit()
     db.refresh(rumah)
     return {"message": "Rumah berhasil diupdate"}
@@ -124,10 +124,10 @@ def update_rumah(rumah_id: int, data: RumahUpdate, db: Session = Depends(get_db)
 # 5. DELETE - Admin hapus rumah
 @router.delete("/{rumah_id}")
 def delete_rumah(rumah_id: int, db: Session = Depends(get_db), admin = Depends(require_admin)):
-    rumah = db.query(Rumah).filter(Rumah.id == rumah_id).first()
+    rumah = db.query(Houses).filter(Houses.id == rumah_id).first() # <--- FIX 6
     if not rumah:
         raise HTTPException(status_code=404, detail="Rumah tidak ditemukan")
-    
+
     db.delete(rumah)
     db.commit()
     return {"message": "Rumah berhasil dihapus"}
