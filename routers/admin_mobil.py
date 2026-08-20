@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 import models, schemas
 from database import get_db
-from.admin_auth import require_admin
+from routers.admin_auth import require_admin # <-- UDAH DIFIX: tambah 'routers '
 
 router = APIRouter(prefix="/admin/mobil", tags=["Admin Mobil"])
 
