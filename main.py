@@ -12,8 +12,8 @@ from database import engine, get_db
 from routers import cars, ai_router, auth_router
 
 # IMPORT ROUTER ADMIN 
-from routers import admin_mobil, admin_rumah, admin_showroom, admin_blog
-from routers.admin_auth import require_admin # <-- INI DIGANTI
+from routers import admin_mobil, admin_rumah, admin_showroom, admin_blog, admin_auth # 1. TAMBAH admin_auth
+from routers.admin_auth import require_admin # 2. IMPORT DARI SINI
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -48,6 +48,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(auth_router.router)
 app.include_router(cars.router)
 app.include_router(ai_router.router)
+app.include_router(admin_auth.router) # 3. DAFTARIN INI
 
 # DAFTAR ROUTER ADMIN
 app.include_router(admin_showroom.router)
@@ -55,35 +56,4 @@ app.include_router(admin_mobil.router)
 app.include_router(admin_rumah.router)
 app.include_router(admin_blog.router)
 
-# ================== ROUTER BARU UNTUK DASHBOARD ==================
-admin_dashboard_router = APIRouter()
-
-@admin_dashboard_router.get("/admin/dashboard-stats")
-def get_dashboard_stats(db: Session = Depends(get_db), admin=Depends(require_admin)): # <-- INI DIGANTI
-    total_mobil = db.query(models.Car).count()
-    total_pending = db.query(models.Car).filter(models.Car.status == 'pending').count()
-    total_showroom = db.query(models.Showroom).count()
-    total_rumah = db.query(models.Rumah).count()
-    total_blog = db.query(models.Blog).count()
-    
-    mobil_baru_query = db.query(models.Car).filter(models.Car.status == 'pending').order_by(models.Car.created_at.desc()).limit(5).all()
-
-    return {
-        "total_mobil": total_mobil,
-        "total_pending": total_pending,
-        "total_showroom": total_showroom,
-        "total_rumah": total_rumah,
-        "total_blog": total_blog,
-        "mobil_baru": [{"id": m.id, "merk": m.merk, "tipe": m.tipe} for m in mobil_baru_query]
-    }
-
-app.include_router(admin_dashboard_router)
-# =================================================================
-
-@app.get("/")
-def read_root():
-    return {"message": "Otopadang API Jalan Bro!"}
-
-@app.get("/health")
-def health_check():
-    return {"status": "ok", "cors": "enabled for vercel"}
+# ... sisanya sama
