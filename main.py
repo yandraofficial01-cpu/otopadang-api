@@ -13,7 +13,7 @@ from routers import cars, ai_router, auth_router
 
 # IMPORT ROUTER ADMIN 
 from routers import admin_mobil, admin_rumah, admin_showroom, admin_blog
-from routers.auth_router import get_current_admin # WAJIB ADA DI auth_router
+from routers.auth_router import get_current_admin
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -35,7 +35,7 @@ app.add_middleware(
         "http://localhost:3000",            
         "https://otopadang.com",             
         "https://www.otopadang.com",         
-        "https://otopadang-frontend.vercel.app",  # GANTI KALAU DOMAIN VERCEL LU BEDA
+        "https://otopadang-frontend.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"], 
@@ -46,16 +46,15 @@ os.makedirs("static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # DAFTAR ROUTER SHOWROOM + UMUM
-app.include_router(auth_router.router)  # /login /register
-app.include_router(cars.router)         # /cars buat showroom upload/edit
-app.include_router(ai_router.router)    # /ai
+app.include_router(auth_router.router)
+app.include_router(cars.router)
+app.include_router(ai_router.router)
 
-# DAFTAR ROUTER ADMIN
-app.include_router(admin_showroom.router) # /admin/showroom
-app.include_router(admin_mobil.router)    # /admin/mobil approve/soldout/delete
-app.include_router(admin_rumah.router)    # /admin/rumah
-app.include_router(admin_blog.router)     # /admin/blog
-
+# DAFTAR ROUTER ADMIN - KASIH PREFIX DISINI
+app.include_router(admin_showroom.router, prefix="/admin/showroom")
+app.include_router(admin_mobil.router, prefix="/admin/mobil")
+app.include_router(admin_rumah.router, prefix="/admin/rumah")
+app.include_router(admin_blog.router, prefix="/admin/blog")
 
 # ================== ROUTER BARU UNTUK DASHBOARD ==================
 admin_dashboard_router = APIRouter()
@@ -65,23 +64,22 @@ def get_dashboard_stats(db: Session = Depends(get_db), admin=Depends(get_current
     total_mobil = db.query(models.Car).count()
     total_pending = db.query(models.Car).filter(models.Car.status == 'pending').count()
     total_showroom = db.query(models.Showroom).count()
+    total_rumah = db.query(models.Rumah).count() # UDAH DI FIX KE RUMAH
     total_blog = db.query(models.Blog).count()
     
-    # Ambil 5 mobil pending terbaru
     mobil_baru_query = db.query(models.Car).filter(models.Car.status == 'pending').order_by(models.Car.created_at.desc()).limit(5).all()
 
     return {
         "total_mobil": total_mobil,
         "total_pending": total_pending,
         "total_showroom": total_showroom,
-        "total_rumah": 0,  # kalau belum ada tabel rumah
+        "total_rumah": total_rumah, # UDAH BENER
         "total_blog": total_blog,
         "mobil_baru": [{"id": m.id, "merk": m.merk, "tipe": m.tipe} for m in mobil_baru_query]
     }
 
 app.include_router(admin_dashboard_router)
 # =================================================================
-
 
 @app.get("/")
 def read_root():
