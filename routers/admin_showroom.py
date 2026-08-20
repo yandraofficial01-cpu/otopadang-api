@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from .admin_auth import require_admin
+from routers.admin_auth import require_admin  # <-- GANTI TITIK JADI routers
 from database import get_db
 from models import Showroom
 
-router = APIRouter(tags=["Admin Showroom"])
+router = APIRouter(prefix="/admin/showroom", tags=["Admin Showroom"]) # <-- TAMBAH PREFIX
 
 @router.get("/")
 def get_all_showroom(db: Session = Depends(get_db), admin = Depends(require_admin)):
