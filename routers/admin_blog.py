@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from .admin_auth import require_admin
+from routers.admin_auth import require_admin # <-- UDAH DIFIX
 from database import get_db
 
 router = APIRouter(prefix="/admin/blog", tags=["Admin Blog"])
