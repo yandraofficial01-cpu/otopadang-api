@@ -68,8 +68,8 @@ class Car(Base):
     
     showroom = relationship("Showroom", back_populates="cars")
 
-class House(Base):
-    __tablename__ = "rumah"
+class Rumah(Base): # GANTI NAMA DARI House -> Rumah
+    __tablename__ = "rumah" # INI UDAH BENER, ARAH KE TABEL YG ADA ISINYA
     id = Column(Integer, primary_key=True, index=True)
     nama_rumah = Column(String(100), nullable=False, index=True)
     tipe = Column(String(50))
@@ -99,36 +99,35 @@ class Blog(Base):
     __tablename__ = "blogs"
     id = Column(Integer, primary_key=True, index=True)
     judul = Column(String(255), nullable=False)
-    slug = Column(String(255), unique=True, index=True, nullable=False) # URL SEO
-    konten = Column(Text) # Isi artikel HTML
-    gambar_cover = Column(String(255)) # Gambar utama
+    slug = Column(String(255), unique=True, index=True, nullable=False)
+    konten = Column(Text)
+    gambar_cover = Column(String(255))
     penulis = Column(String(100), default='Admin Otopadang')
-    kategori = Column(String(50), default='Tips', index=True) # Review, Berita, Tips KPR, Edukasi
-    tags = Column(String(255)) # pisah koma: mobil bekas, avanza, padang
-    meta_description = Column(String(160)) # Deskripsi SEO 160 karakter
+    kategori = Column(String(50), default='Tips', index=True)
+    tags = Column(String(255))
+    meta_description = Column(String(160))
 
-    # FITUR IKLAN / ENDORSE
-    is_sponsored = Column(Boolean, default=False, index=True) # True kalau artikel sponsor
-    nama_pengiklan = Column(String(100), nullable=True) # Nama Showroom yg bayar
-    link_pengiklan = Column(String(255), nullable=True) # Link WA/IG pengiklan
+    is_sponsored = Column(Boolean, default=False, index=True)
+    nama_pengiklan = Column(String(100), nullable=True)
+    link_pengiklan = Column(String(255), nullable=True)
 
-    status = Column(String(50), default='draft', index=True) # draft, publish, scheduled
-    published_at = Column(TIMESTAMP, nullable=True, index=True) # Tanggal tayang. Wajib buat Google News
+    status = Column(String(50), default='draft', index=True)
+    published_at = Column(TIMESTAMP, nullable=True, index=True)
     
     created_at = Column(TIMESTAMP, server_default=func.now())
-    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now()) # Auto update
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
 class LeadRumah(Base):
     __tablename__ = "leads_rumah"
     id = Column(Integer, primary_key=True, index=True)
-    house_id = Column(Integer, ForeignKey("rumah.id", ondelete="CASCADE"), index=True)
+    house_id = Column(Integer, ForeignKey("rumah.id", ondelete="CASCADE"), index=True) # ForeignKey udah bener ke rumah
     nama_buyer = Column(String(100))
     no_wa_buyer = Column(String(20))
-    status = Column(String(50), default='Tanya', index=True) # Tanya, Survey, Deal
+    status = Column(String(50), default='Tanya', index=True)
     fee_persen = Column(DECIMAL(4,2), default=2.00)
     nilai_fee = Column(BigInteger)
     tgl_akad = Column(Date)
     catatan = Column(Text)
     created_at = Column(TIMESTAMP, server_default=func.now())
     
-    house = relationship("House")
+    house = relationship("Rumah") # GANTI DARI House -> Rumah
