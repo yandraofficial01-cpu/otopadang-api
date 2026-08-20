@@ -28,7 +28,6 @@ app = FastAPI(
 
 app.router.redirect_slashes = False 
 
-# CORS FINAL BUAT VERCEL + TOKEN
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -50,11 +49,11 @@ app.include_router(auth_router.router)
 app.include_router(cars.router)
 app.include_router(ai_router.router)
 
-# DAFTAR ROUTER ADMIN - KASIH PREFIX DISINI
-app.include_router(admin_showroom.router, prefix="/admin/showroom")
-app.include_router(admin_mobil.router, prefix="/admin/mobil")
-app.include_router(admin_rumah.router, prefix="/admin/rumah")
-app.include_router(admin_blog.router, prefix="/admin/blog")
+# DAFTAR ROUTER ADMIN - HAPUS PREFIX DISINI
+app.include_router(admin_showroom.router)
+app.include_router(admin_mobil.router)
+app.include_router(admin_rumah.router)
+app.include_router(admin_blog.router)
 
 # ================== ROUTER BARU UNTUK DASHBOARD ==================
 admin_dashboard_router = APIRouter()
@@ -64,7 +63,7 @@ def get_dashboard_stats(db: Session = Depends(get_db), admin=Depends(get_current
     total_mobil = db.query(models.Car).count()
     total_pending = db.query(models.Car).filter(models.Car.status == 'pending').count()
     total_showroom = db.query(models.Showroom).count()
-    total_rumah = db.query(models.Rumah).count() # UDAH DI FIX KE RUMAH
+    total_rumah = db.query(models.Rumah).count()
     total_blog = db.query(models.Blog).count()
     
     mobil_baru_query = db.query(models.Car).filter(models.Car.status == 'pending').order_by(models.Car.created_at.desc()).limit(5).all()
@@ -73,7 +72,7 @@ def get_dashboard_stats(db: Session = Depends(get_db), admin=Depends(get_current
         "total_mobil": total_mobil,
         "total_pending": total_pending,
         "total_showroom": total_showroom,
-        "total_rumah": total_rumah, # UDAH BENER
+        "total_rumah": total_rumah,
         "total_blog": total_blog,
         "mobil_baru": [{"id": m.id, "merk": m.merk, "tipe": m.tipe} for m in mobil_baru_query]
     }
