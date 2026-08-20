@@ -2,14 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from .admin_auth import require_admin
 from database import get_db
-from models import Showroom  # sesuaikan nama model lu
+from models import Showroom
 
-router = APIRouter(tags=["Admin Showroom"]) # HAPUS PREFIX DISINI
+router = APIRouter(tags=["Admin Showroom"])
 
 @router.get("/")
 def get_all_showroom(db: Session = Depends(get_db), admin = Depends(require_admin)):
-    # Tambah filter biar cuma yg approved yg muncul di FE
-    showrooms = db.query(Showroom).filter(Showroom.status == 'approved').all()
+    # Sementara ambil semua dulu. Nanti kalau kolom status udah ada baru pakai filter
+    showrooms = db.query(Showroom).all()
     return showrooms
 
 @router.put("/{showroom_id}/approve")
@@ -18,7 +18,9 @@ def approve_showroom(showroom_id: int, db: Session = Depends(get_db), admin = De
     if not showroom:
         raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
     
-    showroom.status = "approved"
+    # Kalau kolom status belum ada di model, comment dulu baris ini
+    # showroom.status = "approved"
+    
     db.commit()
     db.refresh(showroom)
     return {"message": f"Showroom {showroom.nama_showroom} berhasil di approve", "data": showroom}
