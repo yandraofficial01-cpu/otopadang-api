@@ -13,7 +13,7 @@ from routers import cars, ai_router, auth_router
 
 # IMPORT ROUTER ADMIN 
 from routers import admin_mobil, admin_rumah, admin_showroom, admin_blog
-from routers.auth_router import get_current_admin
+from routers.admin_auth import require_admin # <-- INI DIGANTI
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -49,7 +49,7 @@ app.include_router(auth_router.router)
 app.include_router(cars.router)
 app.include_router(ai_router.router)
 
-# DAFTAR ROUTER ADMIN - HAPUS PREFIX DISINI
+# DAFTAR ROUTER ADMIN
 app.include_router(admin_showroom.router)
 app.include_router(admin_mobil.router)
 app.include_router(admin_rumah.router)
@@ -59,7 +59,7 @@ app.include_router(admin_blog.router)
 admin_dashboard_router = APIRouter()
 
 @admin_dashboard_router.get("/admin/dashboard-stats")
-def get_dashboard_stats(db: Session = Depends(get_db), admin=Depends(get_current_admin)):
+def get_dashboard_stats(db: Session = Depends(get_db), admin=Depends(require_admin)): # <-- INI DIGANTI
     total_mobil = db.query(models.Car).count()
     total_pending = db.query(models.Car).filter(models.Car.status == 'pending').count()
     total_showroom = db.query(models.Showroom).count()
