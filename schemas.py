@@ -48,7 +48,7 @@ class CarCreate(BaseModel):
     tahun: Optional[int] = None
     harga: Optional[int] = None
     harga_kredit: Optional[int] = None
-    angsuran: Optional[int] = None
+    angsuran: Optional[int] = None # UDAH BENER IKUTIN DB
     lama_angsuran: Optional[int] = None
     kilometer: Optional[int] = None
     transmisi: Optional[str] = None
@@ -67,9 +67,9 @@ class CarCreate(BaseModel):
     foto_url_8: Optional[str] = None
     video_url: Optional[str] = None
     no_wa_showroom: Optional[str] = None
-    status: str = "pending"
+    status: Optional[str] = "pending" # DIJADIKAN OPTIONAL
 
-class MobilUpdate(BaseModel): # <-- INI YG BARU DITAMBAH
+class MobilUpdate(BaseModel):
     nama_mobil: Optional[str] = None
     merek: Optional[str] = None
     tahun: Optional[int] = None
@@ -97,11 +97,38 @@ class MobilUpdate(BaseModel): # <-- INI YG BARU DITAMBAH
     class Config:
         extra = "forbid"
 
-class CarResponse(CarCreate):
+class CarResponse(BaseModel): # JANGAN INHERIT DARI CARCREATE
     id: int
     showroom_id: int
+    nama_mobil: str
+    merek: Optional[str] = None
+    tahun: Optional[int] = None
+    harga: Optional[int] = None
+    harga_kredit: Optional[int] = None
+    angsuran: Optional[int] = None
+    lama_angsuran: Optional[int] = None
+    kilometer: Optional[int] = None
+    transmisi: Optional[str] = None
+    bahan_bakar: Optional[str] = None
+    warna: Optional[str] = None
+    tipe: Optional[str] = None
+    lokasi: Optional[str] = None
+    deskripsi: Optional[str] = None
+    foto_url_1: Optional[str] = None
+    foto_url_2: Optional[str] = None
+    foto_url_3: Optional[str] = None
+    foto_url_4: Optional[str] = None
+    foto_url_5: Optional[str] = None
+    foto_url_6: Optional[str] = None
+    foto_url_7: Optional[str] = None
+    foto_url_8: Optional[str] = None
+    video_url: Optional[str] = None
+    no_wa_showroom: Optional[str] = None
+    status: str
+    sold_at: Optional[datetime] = None
     created_at: datetime
-    showroom_nama: Optional[str] = None
+    showroom_nama: Optional[str] = None # INI DIISI MANUAL DI ROUTER
+
     class Config:
         from_attributes = True
 
