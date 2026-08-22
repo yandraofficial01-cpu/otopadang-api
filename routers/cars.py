@@ -16,10 +16,15 @@ def create_car(
     if current_user.role != "showroom" or not current_user.showroom_id:
         raise HTTPException(status_code=403, detail="Cuma showroom yang bisa")
     
+    car_dict = car_data.model_dump()
+    
+    # LOGIKA: kalau FE kosong, pakai WA dari data showroom
+    if not car_dict.get("no_wa_showroom"):
+        car_dict["no_wa_showroom"] = current_user.showroom.wa_number
+    
     db_car = models.Car(
-        **car_data.model_dump(), 
+        **car_dict, 
         showroom_id=current_user.showroom_id, 
-        no_wa_showroom=current_user.showroom.wa_number,
         status="pending" # default pending biar di approve admin
     )
     db.add(db_car)
