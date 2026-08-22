@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, BigInteger, Text, DECIMAL, Date, TIMESTAMP, ForeignKey, func, Boolean
 from sqlalchemy.orm import relationship
 from database import Base
+from datetime import datetime # TAMBAH INI
 
 class Showroom(Base):
     __tablename__ = "showrooms"
@@ -15,7 +16,7 @@ class Showroom(Base):
     status_bayar = Column(String(50), default='trial')
     status = Column(String(50), default='pending', nullable=False, index=True)
     tgl_expired = Column(Date)
-    created_at = Column(TIMESTAMP, server_default=func.now())
+    created_at = Column(TIMESTAMP, default=datetime.utcnow) # FIX: server_default -> default
 
     cars = relationship("Car", back_populates="showroom", cascade="all, delete-orphan")
     users = relationship("User", back_populates="showroom", cascade="all, delete-orphan")
@@ -30,7 +31,7 @@ class User(Base):
     phone = Column(String(50), nullable=True)
     role = Column(String(50), default='showroom', index=True) # admin, showroom
     status = Column(String(50), default='active')
-    created_at = Column(TIMESTAMP, server_default=func.now())
+    created_at = Column(TIMESTAMP, default=datetime.utcnow) # FIX
     
     showroom = relationship("Showroom", back_populates="users")
 
@@ -40,16 +41,15 @@ class Car(Base):
     showroom_id = Column(Integer, ForeignKey("showrooms.id", ondelete="CASCADE"), index=True)
     nama_mobil = Column(String(100), nullable=False, index=True)
     merek = Column(String(50), index=True)
+    tipe = Column(String(50))
     tahun = Column(Integer, index=True)
-    harga = Column(BigInteger)
-    harga_kredit = Column(BigInteger)
-    angsuran = Column(BigInteger)
-    lama_angsuran = Column(Integer)
     kilometer = Column(Integer)
     transmisi = Column(String(20))
     bahan_bakar = Column(String(20))
-    warna = Column(String(30))
-    tipe = Column(String(50))
+    harga = Column(BigInteger)
+    harga_kredit = Column(BigInteger)
+    dp = Column(BigInteger) # SESUAIKAN DGN FE LU YG NAME="dp"
+    lama_angsuran = Column(Integer)
     lokasi = Column(String(255))
     deskripsi = Column(Text)
     foto_url_1 = Column(String(255))
@@ -60,16 +60,15 @@ class Car(Base):
     foto_url_6 = Column(String(255))
     foto_url_7 = Column(String(255))
     foto_url_8 = Column(String(255))
-    video_url = Column(String(255))
     no_wa_showroom = Column(String(20))
     status = Column(String(50), default='pending', index=True) # pending, approved, rejected, sold
     sold_at = Column(TIMESTAMP, nullable=True)
-    created_at = Column(TIMESTAMP, server_default=func.now())
+    created_at = Column(TIMESTAMP, default=datetime.utcnow) # FIX INI YG PENTING
     
     showroom = relationship("Showroom", back_populates="cars")
 
-class Rumah(Base): # GANTI NAMA DARI House -> Rumah
-    __tablename__ = "rumah" # INI UDAH BENER, ARAH KE TABEL YG ADA ISINYA
+class Rumah(Base):
+    __tablename__ = "rumah"
     id = Column(Integer, primary_key=True, index=True)
     nama_rumah = Column(String(100), nullable=False, index=True)
     tipe = Column(String(50))
@@ -93,7 +92,7 @@ class Rumah(Base): # GANTI NAMA DARI House -> Rumah
     video_url = Column(String(255))
     wa_number = Column(String(20), default='628979879518')
     status = Column(String(50), default='available', index=True)
-    created_at = Column(TIMESTAMP, server_default=func.now())
+    created_at = Column(TIMESTAMP, default=datetime.utcnow) # FIX
 
 class Blog(Base):
     __tablename__ = "blogs"
@@ -106,21 +105,18 @@ class Blog(Base):
     kategori = Column(String(50), default='Tips', index=True)
     tags = Column(String(255))
     meta_description = Column(String(160))
-
     is_sponsored = Column(Boolean, default=False, index=True)
     nama_pengiklan = Column(String(100), nullable=True)
     link_pengiklan = Column(String(255), nullable=True)
-
     status = Column(String(50), default='draft', index=True)
     published_at = Column(TIMESTAMP, nullable=True, index=True)
-    
-    created_at = Column(TIMESTAMP, server_default=func.now())
-    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+    created_at = Column(TIMESTAMP, default=datetime.utcnow) # FIX
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow) # FIX
 
 class LeadRumah(Base):
     __tablename__ = "leads_rumah"
     id = Column(Integer, primary_key=True, index=True)
-    house_id = Column(Integer, ForeignKey("rumah.id", ondelete="CASCADE"), index=True) # ForeignKey udah bener ke rumah
+    house_id = Column(Integer, ForeignKey("rumah.id", ondelete="CASCADE"), index=True)
     nama_buyer = Column(String(100))
     no_wa_buyer = Column(String(20))
     status = Column(String(50), default='Tanya', index=True)
@@ -128,6 +124,6 @@ class LeadRumah(Base):
     nilai_fee = Column(BigInteger)
     tgl_akad = Column(Date)
     catatan = Column(Text)
-    created_at = Column(TIMESTAMP, server_default=func.now())
+    created_at = Column(TIMESTAMP, default=datetime.utcnow) # FIX
     
-    house = relationship("Rumah") # GANTI DARI House -> Rumah
+    house = relationship("Rumah")
