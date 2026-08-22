@@ -18,14 +18,21 @@ def create_car(
     
     car_dict = car_data.model_dump()
     
-    # LOGIKA: kalau FE kosong, pakai WA dari data showroom
-    if not car_dict.get("no_wa_showroom"):
-        car_dict["no_wa_showroom"] = current_user.showroom.wa_number
+    # HAPUS FIELD YG KITA SET OTOMATIS BIAR GA BENTROK
+    car_dict.pop("no_wa_showroom", None)
+    car_dict.pop("status", None) 
+    car_dict.pop("showroom_id", None)
     
+    # ISI OTOMATIS
+    if not car_data.no_wa_showroom: # kalau FE kosong
+        car_dict["no_wa_showroom"] = current_user.showroom.wa_number
+    else: # kalau FE isi manual
+        car_dict["no_wa_showroom"] = car_data.no_wa_showroom
+        
     db_car = models.Car(
         **car_dict, 
         showroom_id=current_user.showroom_id, 
-        status="pending" # default pending biar di approve admin
+        status="pending" # kita set sendiri
     )
     db.add(db_car)
     db.commit()
