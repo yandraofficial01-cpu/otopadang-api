@@ -46,9 +46,10 @@ class Car(Base):
     kilometer = Column(Integer)
     transmisi = Column(String(20))
     bahan_bakar = Column(String(20))
+    warna = Column(String(30)) # TAMBAH INI SESUAI DB
     harga = Column(BigInteger)
     harga_kredit = Column(BigInteger)
-    dp = Column(BigInteger) # UDAH BENER
+    angsuran = Column(BigInteger) # FIX: GANTI DARI dp -> angsuran
     lama_angsuran = Column(Integer)
     lokasi = Column(String(255))
     deskripsi = Column(Text)
@@ -60,6 +61,7 @@ class Car(Base):
     foto_url_6 = Column(String(255))
     foto_url_7 = Column(String(255))
     foto_url_8 = Column(String(255))
+    video_url = Column(String(255)) # TAMBAH INI SESUAI DB
     no_wa_showroom = Column(String(20))
     status = Column(String(50), default='pending', index=True) # pending, approved, rejected, sold
     sold_at = Column(TIMESTAMP, nullable=True)
