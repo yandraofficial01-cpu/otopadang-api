@@ -1,16 +1,16 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base # <-- GANTI INI, yg lama udah deprecated
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
+import os
 
-# HARDCODE BUAT RAILWAY - JANGAN PAKE ENV DULU
-DATABASE_URL = "mysql+pymysql://2LjCFgMS6ZcPP1b.root:kBblzkLDr7tSH6oh@gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/test?charset=utf8mb4"
+DATABASE_URL = os.getenv("DATABASE_URL") # AMBIL DARI VERCEL
 
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
     pool_recycle=300,
-    connect_args={"ssl": {"ssl_verify_cert": False}}
+    connect_args={"ssl": {"ssl-mode": "REQUIRED"}} # FIX BUAT TIDB
 )
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
