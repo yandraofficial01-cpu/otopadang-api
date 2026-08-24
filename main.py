@@ -12,8 +12,8 @@ from database import engine, get_db
 from routers import cars, ai_router, auth_router
 
 # IMPORT ROUTER ADMIN 
-from routers import admin_mobil, admin_rumah, admin_showroom, admin_blog, admin_auth # 1. TAMBAH admin_auth
-from routers.admin_auth import require_admin # 2. IMPORT DARI SINI
+from routers import admin_mobil, admin_rumah, admin_showroom, admin_blog, admin_auth
+from routers.admin_auth import require_admin
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -41,19 +41,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-os.makedirs("static", exist_ok=True)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# HAPUS os.makedirs. Vercel gak bisa bikin folder pas runtime
+# Kalau mau pake static, folder "static" harus udah ada di github dari awal
+# Sementara kita komen dulu biar gak error
+# app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # DAFTAR ROUTER SHOWROOM + UMUM
-app.include_router(auth_router.router)
-app.include_router(cars.router)
-app.include_router(ai_router.router)
-app.include_router(admin_auth.router) # 3. DAFTARIN INI
+app.include_router(auth_router.router, prefix="/auth", tags=["Auth"])
+app.include_router(cars.router, prefix="/cars", tags=["Cars"])
+app.include_router(ai_router.router, prefix="/ai", tags=["AI"])
+app.include_router(admin_auth.router, prefix="/admin-auth", tags=["Admin Auth"])
 
 # DAFTAR ROUTER ADMIN
-app.include_router(admin_showroom.router)
-app.include_router(admin_mobil.router)
-app.include_router(admin_rumah.router)
-app.include_router(admin_blog.router)
+app.include_router(admin_showroom.router, prefix="/admin/showroom", tags=["Admin Showroom"])
+app.include_router(admin_mobil.router, prefix="/admin/mobil", tags=["Admin Mobil"])
+app.include_router(admin_rumah.router, prefix="/admin/rumah", tags=["Admin Rumah"])
+app.include_router(admin_blog.router, prefix="/admin/blog", tags=["Admin Blog"])
 
-# ... sisanya sama
+@app.get("/")
+def read_root():
+    return {"status": "ok", "message": "Otopadang API is running"}
