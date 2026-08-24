@@ -1,12 +1,12 @@
 import os
 from dotenv import load_dotenv
-import google.generativeai as genai # <-- PENTING GANTI INI
+import google.generativeai as genai # <-- INI KUNCI NYA
 
 load_dotenv()
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 if not API_KEY:
-    raise ValueError("GEMINI_API_KEY tidak ditemukan")
+    raise ValueError("GEMINI_API_KEY tidak ditemukan di Vercel Env")
 
 genai.configure(api_key=API_KEY)
 
