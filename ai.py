@@ -1,12 +1,16 @@
 import os
 from dotenv import load_dotenv
-from google import genai # <-- GANTI INI
+from google import genai # <-- SDK baru bener
 
-# 1. Baca file .env biar bisa ambil API KEY
+# 1. Baca file.env biar bisa ambil API KEY
 load_dotenv()
 
 # 2. Konekin ke Google Gemini versi baru
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY")) # <-- GANTI INI
+API_KEY = os.getenv("GEMINI_API_KEY")
+if not API_KEY:
+    raise ValueError("GEMINI_API_KEY tidak ditemukan di environment variables")
+
+client = genai.Client(api_key=API_KEY)
 
 # 3. Fungsi Anti Gravity kita
 def generate_deskripsi(merek, tahun, km, harga):
@@ -26,8 +30,11 @@ def generate_deskripsi(merek, tahun, km, harga):
     4. Ajak calon pembeli untuk WA di akhir
     5. Maksimal 200 kata
     """
-    response = client.models.generate_content( # <-- GANTI INI
-        model="gemini-2.0-flash", # <-- Pake model paling cepet
-        contents=prompt
-    )
-    return response.text
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt
+        )
+        return response.text
+    except Exception as e:
+        return f"Gagal generate deskripsi: {str(e)}"
