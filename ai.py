@@ -1,19 +1,17 @@
 import os
 from dotenv import load_dotenv
-from google import genai # <-- SDK baru bener
+import google.generativeai as genai # <-- PENTING GANTI INI
 
-# 1. Baca file.env biar bisa ambil API KEY
 load_dotenv()
 
-# 2. Konekin ke Google Gemini versi baru
 API_KEY = os.getenv("GEMINI_API_KEY")
 if not API_KEY:
-    raise ValueError("GEMINI_API_KEY tidak ditemukan di environment variables")
+    raise ValueError("GEMINI_API_KEY tidak ditemukan")
 
-client = genai.Client(api_key=API_KEY)
+genai.configure(api_key=API_KEY)
 
-# 3. Fungsi Anti Gravity kita
 def generate_deskripsi(merek, tahun, km, harga):
+    model = genai.GenerativeModel('gemini-1.5-flash')
     prompt = f"""
     Kamu adalah sales mobil terbaik di Padang. Buatkan deskripsi iklan jual mobil yang menarik.
 
@@ -30,11 +28,5 @@ def generate_deskripsi(merek, tahun, km, harga):
     4. Ajak calon pembeli untuk WA di akhir
     5. Maksimal 200 kata
     """
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt
-        )
-        return response.text
-    except Exception as e:
-        return f"Gagal generate deskripsi: {str(e)}"
+    response = model.generate_content(prompt)
+    return response.text
