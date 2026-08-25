@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware 
 from sqlalchemy.orm import Session
 
-import models 
+from models import Base  # <--- UDAH GW UBAH. Dulu "import models"
 from database import engine, get_db
 
 # IMPORT ROUTER SHOWROOM + UMUM
@@ -15,7 +15,7 @@ from routers import cars, ai_router, auth_router
 from routers import admin_mobil, admin_rumah, admin_showroom, admin_blog, admin_auth
 from routers.admin_auth import require_admin
 
-models.Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine) # <--- UDAH GW UBAH. Dulu "models.Base"
 
 app = FastAPI(
     title="Otopadang API",
@@ -40,11 +40,6 @@ app.add_middleware(
     allow_methods=["*"], 
     allow_headers=["*"],
 )
-
-# HAPUS os.makedirs. Vercel gak bisa bikin folder pas runtime
-# Kalau mau pake static, folder "static" harus udah ada di github dari awal
-# Sementara kita komen dulu biar gak error
-# app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # DAFTAR ROUTER SHOWROOM + UMUM
 app.include_router(auth_router.router, prefix="/auth", tags=["Auth"])
