@@ -35,6 +35,7 @@ app.add_middleware(
         "https://otopadang.com",             
         "https://www.otopadang.com",         
         "https://otopadang-frontend.vercel.app",
+        "https://otopadang-frontend-vtm8itdc9-yandraofficial01-9603s-projects.vercel.app", # <-- TAMBAHIN INI
     ],
     allow_credentials=True,
     allow_methods=["*"], 
