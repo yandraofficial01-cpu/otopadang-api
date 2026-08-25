@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware 
 from sqlalchemy.orm import Session
 
-from models import Base  # <--- UDAH GW UBAH. Dulu "import models"
+from models import Base 
 from database import engine, get_db
 
 # IMPORT ROUTER SHOWROOM + UMUM
@@ -15,7 +15,7 @@ from routers import cars, ai_router, auth_router
 from routers import admin_mobil, admin_rumah, admin_showroom, admin_blog, admin_auth
 from routers.admin_auth import require_admin
 
-Base.metadata.create_all(bind=engine) # <--- UDAH GW UBAH. Dulu "models.Base"
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Otopadang API",
@@ -41,17 +41,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# DAFTAR ROUTER SHOWROOM + UMUM
-app.include_router(auth_router.router, prefix="/auth", tags=["Auth"])
-app.include_router(cars.router, prefix="/cars", tags=["Cars"])
-app.include_router(ai_router.router, prefix="/ai", tags=["AI"])
-app.include_router(admin_auth.router, prefix="/admin-auth", tags=["Admin Auth"])
+# DAFTAR ROUTER SHOWROOM + UMUM - PREFIX UDAH DIHAPUS
+app.include_router(auth_router.router, tags=["Auth"])
+app.include_router(cars.router, tags=["Cars"])
+app.include_router(ai_router.router, tags=["AI"])
+app.include_router(admin_auth.router, tags=["Admin Auth"])
 
-# DAFTAR ROUTER ADMIN
-app.include_router(admin_showroom.router, prefix="/admin/showroom", tags=["Admin Showroom"])
-app.include_router(admin_mobil.router, prefix="/admin/mobil", tags=["Admin Mobil"])
-app.include_router(admin_rumah.router, prefix="/admin/rumah", tags=["Admin Rumah"])
-app.include_router(admin_blog.router, prefix="/admin/blog", tags=["Admin Blog"])
+# DAFTAR ROUTER ADMIN - PREFIX UDAH DIHAPUS
+app.include_router(admin_showroom.router, tags=["Admin Showroom"])
+app.include_router(admin_mobil.router, tags=["Admin Mobil"])
+app.include_router(admin_rumah.router, tags=["Admin Rumah"])
+app.include_router(admin_blog.router, tags=["Admin Blog"])
 
 @app.get("/")
 def read_root():
