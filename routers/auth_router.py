@@ -11,9 +11,6 @@ import os
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
-ADMIN_EMAILS = ["admin@otopadang.com", "yandraofficial01@gmail.com"] 
-WA_ADMIN = "628979879518"
-
 SECRET_KEY = os.getenv("SECRET_KEY", "rahasia-super-penting-ganti-di-railway") 
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -32,7 +29,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("email")
+        email: str = payload.get("sub")  # PENTING: pake "sub" bukan "email"
         if email is None:
             raise credentials_exception
     except JWTError:
@@ -42,11 +39,6 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if user is None:
         raise credentials_exception
     return user
-
-def get_current_admin(current_user: User = Depends(get_current_user)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Hanya admin yang bisa akses")
-    return current_user
 
 @router.post("/register", response_model=schemas.ShowroomResponse, status_code=status.HTTP_201_CREATED)
 def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = Depends(get_db)):
@@ -75,9 +67,9 @@ def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = D
         name=showroom.nama_showroom,
         email=showroom.email,
         phone=showroom.wa_number,
-        password=hashed_password,
+        password=hashed_password, # pastikan di models.py kolomnya 'password'
         role='showroom',
-        status='active' # LANGSUNG ACTIVE BIAR GA RIBET
+        status='active'
     )
     db.add(new_user)
     db.commit()
@@ -89,26 +81,22 @@ def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = D
 def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
-        print(f"[LOGIN FAIL] User tidak ketemu: {request.email}")
         raise HTTPException(status_code=400, detail="Email atau password salah")
     
-    print(f"[LOGIN] Email: {request.email}")
-    print(f"[LOGIN] Role di DB: {user.role}")
-    print(f"[LOGIN] Status di DB: {user.status}")
-    
-    # 1. CEK STATUS - BERLAKU UNTUK SEMUA ROLE
+    # 1. CEK STATUS
     if user.status != 'active':
         raise HTTPException(status_code=403, detail="Akun belum aktif. Hubungi admin")
     
     # 2. CEK PASSWORD
-    verify_result = verify_password(request.password, user.password)
-    print(f"[LOGIN] Verify result: {verify_result}")
-    
-    if not verify_result:
+    if not verify_password(request.password, user.password):
         raise HTTPException(status_code=400, detail="Email atau password salah")
     
-    # 3. HAPUS CEK ROLE. SEMUA ROLE BOLEH LOGIN DI SINI
-    access_token = create_access_token(data={"email": user.email, "role": user.role, "showroom_id": user.showroom_id})
+    # 3. BIKIN TOKEN - KUNCI DI "sub"
+    access_token = create_access_token(data={
+        "sub": user.email, 
+        "role": user.role, 
+        "showroom_id": user.showroom_id
+    })
 
     return {
         "access_token": access_token,
@@ -117,11 +105,12 @@ def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
             "id": user.id,
             "email": user.email,
             "role": user.role,
-            "showroom_id": user.showroom_id
+            "showroom_id": user.showroom_id,
+            "nama": user.name
         }
     }
 
-# HAPUS SETELAH DIPAKE
+# UTILITY BUAT RESET
 @router.post("/reset-admin")
 def reset_admin(db: Session = Depends(get_db)):
     new_hash = hash_password("admin123")
@@ -139,16 +128,12 @@ def reset_admin(db: Session = Depends(get_db)):
         db.add(user)
     else:
         user.password = new_hash
-        user.name = "Admin Otopadang"
-        user.phone = "08979879518"
         user.role = "admin"
         user.status = "active"
     
     db.commit()
-    print(f"[RESET] Hash baru admin: {new_hash}")
     return {"msg": "Admin reset berhasil. Password: admin123"}
 
-# TAMBAHAN: BUAT RESET PASSWORD SHOWROOM
 @router.post("/reset-showroom/{id}")
 def reset_showroom_password(id: int, db: Session = Depends(get_db)):
     new_hash = hash_password("123456")
