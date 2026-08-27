@@ -1,7 +1,6 @@
 import os
 from datetime import datetime
 from fastapi import FastAPI, Depends, APIRouter
-from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware 
 from sqlalchemy.orm import Session
 
@@ -13,9 +12,8 @@ from routers import cars, rumah, ai_router, auth_router
 
 # IMPORT SEMUA ROUTER ADMIN 
 from routers import admin_mobil, admin_rumah, admin_showroom, admin_blog, admin_auth
-from routers.admin_auth import require_admin
 
-Base.metadata.create_all(bind=engine)
+# HAPUS INI: Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Otopadang API",
@@ -43,8 +41,7 @@ app.add_middleware(
 )
 
 # ========== DAFTAR ROUTER PUBLIC ==========
-# FIX: auth_router JANGAN dikasih prefix lagi karena di dalamnya udah ada
-app.include_router(auth_router.router, tags=["Auth"]) # <-- HAPUS prefix="/auth"
+app.include_router(auth_router.router, tags=["Auth"]) 
 app.include_router(cars.router, prefix="/cars", tags=["Cars Public"])
 app.include_router(rumah.router, prefix="/rumah", tags=["Rumah Public"])
 app.include_router(ai_router.router, prefix="/ai", tags=["AI"])
