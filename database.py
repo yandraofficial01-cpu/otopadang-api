@@ -8,7 +8,7 @@ engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
     pool_recycle=300,
-    connect_args={"ssl": {"ssl-mode": "REQUIRED"}} # FIX BUAT TIDB
+    connect_args={"ssl": {"ssl_mode": "REQUIRED"}} # FIX: GANTI - JADI _
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
