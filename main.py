@@ -9,7 +9,7 @@ from models import Base
 from database import engine, get_db
 
 # IMPORT SEMUA ROUTER PUBLIC
-from routers import cars, rumah, ai_router, auth_router # <-- TAMBAH rumah
+from routers import cars, rumah, ai_router, auth_router
 
 # IMPORT SEMUA ROUTER ADMIN 
 from routers import admin_mobil, admin_rumah, admin_showroom, admin_blog, admin_auth
@@ -43,10 +43,10 @@ app.add_middleware(
 )
 
 # ========== DAFTAR ROUTER PUBLIC ==========
-# prefix kita set disini biar rapi dan gak bentrok
-app.include_router(auth_router.router, prefix="/auth", tags=["Auth"])
-app.include_router(cars.router, prefix="/cars", tags=["Cars Public"]) # <-- KASIH PREFIX
-app.include_router(rumah.router, prefix="/rumah", tags=["Rumah Public"]) # <-- TAMBAH INI
+# FIX: auth_router JANGAN dikasih prefix lagi karena di dalamnya udah ada
+app.include_router(auth_router.router, tags=["Auth"]) # <-- HAPUS prefix="/auth"
+app.include_router(cars.router, prefix="/cars", tags=["Cars Public"])
+app.include_router(rumah.router, prefix="/rumah", tags=["Rumah Public"])
 app.include_router(ai_router.router, prefix="/ai", tags=["AI"])
 
 # ========== DAFTAR ROUTER ADMIN ==========
