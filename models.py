@@ -16,7 +16,7 @@ class Showroom(Base):
     status_bayar = Column(String(50), default='trial')
     status = Column(String(50), default='pending', nullable=False, index=True)
     tgl_expired = Column(Date)
-    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    created_at = Column(TIMESTAMP, default=datetime.now)
 
     cars = relationship("Car", back_populates="showroom", cascade="all, delete-orphan")
     users = relationship("User", back_populates="showroom", cascade="all, delete-orphan")
@@ -31,7 +31,7 @@ class User(Base):
     phone = Column(String(50), nullable=True)
     role = Column(String(50), default='showroom', index=True) # admin, showroom
     status = Column(String(50), default='active')
-    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    created_at = Column(TIMESTAMP, default=datetime.now)
     
     showroom = relationship("Showroom", back_populates="users")
 
@@ -46,10 +46,10 @@ class Car(Base):
     kilometer = Column(Integer)
     transmisi = Column(String(20))
     bahan_bakar = Column(String(20))
-    warna = Column(String(30)) # TAMBAH INI SESUAI DB
+    warna = Column(String(30))
     harga = Column(BigInteger)
     harga_kredit = Column(BigInteger)
-    angsuran = Column(BigInteger) # FIX: GANTI DARI dp -> angsuran
+    angsuran = Column(BigInteger)
     lama_angsuran = Column(Integer)
     lokasi = Column(String(255))
     deskripsi = Column(Text)
@@ -61,11 +61,11 @@ class Car(Base):
     foto_url_6 = Column(String(255))
     foto_url_7 = Column(String(255))
     foto_url_8 = Column(String(255))
-    video_url = Column(String(255)) # TAMBAH INI SESUAI DB
+    video_url = Column(String(255))
     no_wa_showroom = Column(String(20))
     status = Column(String(50), default='pending', index=True) # pending, approved, rejected, sold
     sold_at = Column(TIMESTAMP, nullable=True)
-    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    created_at = Column(TIMESTAMP, default=datetime.now)
     
     showroom = relationship("Showroom", back_populates="cars")
 
@@ -94,7 +94,7 @@ class Rumah(Base):
     video_url = Column(String(255))
     wa_number = Column(String(20), default='628979879518')
     status = Column(String(50), default='available', index=True)
-    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    created_at = Column(TIMESTAMP, default=datetime.now)
 
 class Blog(Base):
     __tablename__ = "blogs"
@@ -112,8 +112,8 @@ class Blog(Base):
     link_pengiklan = Column(String(255), nullable=True)
     status = Column(String(50), default='draft', index=True)
     published_at = Column(TIMESTAMP, nullable=True, index=True)
-    created_at = Column(TIMESTAMP, default=datetime.utcnow)
-    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(TIMESTAMP, default=datetime.now)
+    updated_at = Column(TIMESTAMP, default=datetime.now, onupdate=datetime.now)
 
 class LeadRumah(Base):
     __tablename__ = "leads_rumah"
@@ -126,6 +126,6 @@ class LeadRumah(Base):
     nilai_fee = Column(BigInteger)
     tgl_akad = Column(Date)
     catatan = Column(Text)
-    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    created_at = Column(TIMESTAMP, default=datetime.now)
     
     house = relationship("Rumah")
