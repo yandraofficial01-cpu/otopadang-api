@@ -16,7 +16,7 @@ class Showroom(Base):
     status_bayar = Column(String(50), default='trial')
     status = Column(String(50), default='pending', nullable=False, index=True)
     tgl_expired = Column(Date)
-    created_at = Column(TIMESTAMP, default=datetime.now)
+    created_at = Column(TIMESTAMP, server_default=func.now()) # FIX: pake server_default
 
     cars = relationship("Car", back_populates="showroom", cascade="all, delete-orphan")
     users = relationship("User", back_populates="showroom", cascade="all, delete-orphan")
@@ -27,11 +27,11 @@ class User(Base):
     showroom_id = Column(Integer, ForeignKey("showrooms.id", ondelete="CASCADE"), nullable=True)
     name = Column(String(255), nullable=True)
     email = Column(String(100), unique=True, nullable=False, index=True)
-    password = Column(String(255), nullable=False)
+    password = Column(String(255), nullable=False) # UDAH BENER. Cocok sama auth.py
     phone = Column(String(50), nullable=True)
     role = Column(String(50), default='showroom', index=True) # admin, showroom
     status = Column(String(50), default='active')
-    created_at = Column(TIMESTAMP, default=datetime.now)
+    created_at = Column(TIMESTAMP, server_default=func.now()) # FIX
     
     showroom = relationship("Showroom", back_populates="users")
 
@@ -65,7 +65,7 @@ class Car(Base):
     no_wa_showroom = Column(String(20))
     status = Column(String(50), default='pending', index=True) # pending, approved, rejected, sold
     sold_at = Column(TIMESTAMP, nullable=True)
-    created_at = Column(TIMESTAMP, default=datetime.now)
+    created_at = Column(TIMESTAMP, server_default=func.now()) # FIX
     
     showroom = relationship("Showroom", back_populates="cars")
 
@@ -94,7 +94,7 @@ class Rumah(Base):
     video_url = Column(String(255))
     wa_number = Column(String(20), default='628979879518')
     status = Column(String(50), default='available', index=True)
-    created_at = Column(TIMESTAMP, default=datetime.now)
+    created_at = Column(TIMESTAMP, server_default=func.now()) # FIX
 
 class Blog(Base):
     __tablename__ = "blogs"
@@ -112,8 +112,8 @@ class Blog(Base):
     link_pengiklan = Column(String(255), nullable=True)
     status = Column(String(50), default='draft', index=True)
     published_at = Column(TIMESTAMP, nullable=True, index=True)
-    created_at = Column(TIMESTAMP, default=datetime.now)
-    updated_at = Column(TIMESTAMP, default=datetime.now, onupdate=datetime.now)
+    created_at = Column(TIMESTAMP, server_default=func.now()) # FIX
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now()) # FIX
 
 class LeadRumah(Base):
     __tablename__ = "leads_rumah"
@@ -126,6 +126,6 @@ class LeadRumah(Base):
     nilai_fee = Column(BigInteger)
     tgl_akad = Column(Date)
     catatan = Column(Text)
-    created_at = Column(TIMESTAMP, default=datetime.now)
+    created_at = Column(TIMESTAMP, server_default=func.now()) # FIX
     
     house = relationship("Rumah")
