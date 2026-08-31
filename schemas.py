@@ -43,9 +43,9 @@ class ShowroomResponse(BaseModel):
 # ========== MOBIL / CAR ==========
 class CarCreate(BaseModel):
     nama_mobil: str
-    merek: str # <-- DIWAJIBKAN, sama kaya FE
+    merek: str
     tahun: Optional[int] = None
-    harga: int # <-- DIWAJIBKAN, sama kaya FE
+    harga: int
     harga_kredit: Optional[int] = None
     angsuran: Optional[int] = None
     lama_angsuran: Optional[int] = None
@@ -56,7 +56,7 @@ class CarCreate(BaseModel):
     tipe: Optional[str] = None
     lokasi: Optional[str] = None
     deskripsi: Optional[str] = None
-    foto_url_1: str # <-- DIWAJIBKAN, ini cover. sama kaya FE
+    foto_url_1: str # cover wajib
     foto_url_2: Optional[str] = None
     foto_url_3: Optional[str] = None
     foto_url_4: Optional[str] = None
@@ -66,33 +66,15 @@ class CarCreate(BaseModel):
     foto_url_8: Optional[str] = None
     video_url: Optional[str] = None
     no_wa_showroom: Optional[str] = None
-    status: Optional[str] = "pending"
+    # status: Dihapus! Biar backend yg set "pending"
 
 class MobilUpdate(BaseModel):
-    nama_mobil: Optional[str] = None
-    merek: Optional[str] = None
-    tahun: Optional[int] = None
+    # Showroom HANYA BOLEH EDIT 4 INI
     harga: Optional[int] = None
-    harga_kredit: Optional[int] = None
-    angsuran: Optional[int] = None
-    lama_angsuran: Optional[int] = None
-    kilometer: Optional[int] = None
-    transmisi: Optional[str] = None
-    bahan_bakar: Optional[str] = None
-    warna: Optional[str] = None
-    tipe: Optional[str] = None
-    lokasi: Optional[str] = None
+    no_wa_showroom: Optional[str] = None
+    spesifikasi: Optional[str] = None # kalo ada
     deskripsi: Optional[str] = None
-    status: Optional[str] = None
-    foto_url_1: Optional[str] = None
-    foto_url_2: Optional[str] = None
-    foto_url_3: Optional[str] = None
-    foto_url_4: Optional[str] = None
-    foto_url_5: Optional[str] = None
-    foto_url_6: Optional[str] = None
-    foto_url_7: Optional[str] = None
-    foto_url_8: Optional[str] = None
-    video_url: Optional[str] = None
+    # status: Dihapus! Cuma admin yg boleh
     class Config:
         extra = "forbid"
 
@@ -123,7 +105,8 @@ class CarResponse(BaseModel):
     foto_url_8: Optional[str] = None
     video_url: Optional[str] = None
     no_wa_showroom: Optional[str] = None
-    status: str
+    status: str # ini tetep ada buat response
+    status_jual: Optional[str] = None # <--- TAMBAHIN INI JUGA
     sold_at: Optional[datetime] = None
     created_at: datetime
     showroom_nama: Optional[str] = None
@@ -133,7 +116,6 @@ class CarResponse(BaseModel):
 
 MobilCreate = CarCreate
 MobilResponse = CarResponse
-
 
 # ========== RUMAH / HOUSE ==========
 class RumahCreate(BaseModel):
