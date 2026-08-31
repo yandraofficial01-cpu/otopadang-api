@@ -37,27 +37,26 @@ class ShowroomResponse(BaseModel):
     paket: str
     status_bayar: str
     status: str
-
     class Config:
         from_attributes = True
 
 # ========== MOBIL / CAR ==========
 class CarCreate(BaseModel):
     nama_mobil: str
-    merek: Optional[str] = None
+    merek: str # <-- DIWAJIBKAN, sama kaya FE
     tahun: Optional[int] = None
-    harga: Optional[int] = None
+    harga: int # <-- DIWAJIBKAN, sama kaya FE
     harga_kredit: Optional[int] = None
-    angsuran: Optional[int] = None # UDAH BENER IKUTIN DB
+    angsuran: Optional[int] = None
     lama_angsuran: Optional[int] = None
     kilometer: Optional[int] = None
-    transmisi: Optional[str] = None
-    bahan_bakar: Optional[str] = None
+    transmisi: Optional[str] = "Manual"
+    bahan_bakar: Optional[str] = "Bensin"
     warna: Optional[str] = None
     tipe: Optional[str] = None
     lokasi: Optional[str] = None
     deskripsi: Optional[str] = None
-    foto_url_1: Optional[str] = None
+    foto_url_1: str # <-- DIWAJIBKAN, ini cover. sama kaya FE
     foto_url_2: Optional[str] = None
     foto_url_3: Optional[str] = None
     foto_url_4: Optional[str] = None
@@ -67,7 +66,7 @@ class CarCreate(BaseModel):
     foto_url_8: Optional[str] = None
     video_url: Optional[str] = None
     no_wa_showroom: Optional[str] = None
-    status: Optional[str] = "pending" # DIJADIKAN OPTIONAL
+    status: Optional[str] = "pending"
 
 class MobilUpdate(BaseModel):
     nama_mobil: Optional[str] = None
@@ -97,7 +96,7 @@ class MobilUpdate(BaseModel):
     class Config:
         extra = "forbid"
 
-class CarResponse(BaseModel): # JANGAN INHERIT DARI CARCREATE
+class CarResponse(BaseModel):
     id: int
     showroom_id: int
     nama_mobil: str
@@ -127,13 +126,14 @@ class CarResponse(BaseModel): # JANGAN INHERIT DARI CARCREATE
     status: str
     sold_at: Optional[datetime] = None
     created_at: datetime
-    showroom_nama: Optional[str] = None # INI DIISI MANUAL DI ROUTER
+    showroom_nama: Optional[str] = None
 
     class Config:
         from_attributes = True
 
 MobilCreate = CarCreate
 MobilResponse = CarResponse
+
 
 # ========== RUMAH / HOUSE ==========
 class RumahCreate(BaseModel):
@@ -170,7 +170,7 @@ HouseCreate = RumahCreate
 HouseResponse = RumahResponse
 RumahBase = RumahCreate
 
-# ========== BLOG - VERSI BARU GOOGLE NEWS READY ==========
+# ========== BLOG ==========
 class BlogBase(BaseModel):
     judul: str
     konten: str
@@ -206,7 +206,6 @@ class BlogResponse(BlogBase):
     published_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
-
     class Config:
         from_attributes = True
 
