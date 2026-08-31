@@ -15,19 +15,33 @@ def create_car(mobil: schemas.MobilCreate, db: Session = Depends(get_db), curren
         raise HTTPException(status_code=404, detail="Akun belum terhubung ke showroom")
 
     showroom = db.query(models.Showroom).filter(models.Showroom.id == current_user.showroom_id).first()
+    if not showroom:
+        raise HTTPException(status_code=404, detail="Data showroom tidak ditemukan")
 
-    db_car = models.Car(**mobil.dict(), showroom_id = showroom.id, status = "pending")
+    # FIX: BUANG status & status_jual dari body biar gak bentrok
+    car_data = mobil.dict()
+    car_data.pop("status", None)
+    car_data.pop("status_jual", None)
+
+    db_car = models.Car(
+        **car_data,
+        showroom_id = showroom.id,
+        status = "pending", # <--- KITA YANG SET
+        status_jual = "tersedia" # <--- KITA YANG SET
+    )
     db.add(db_car)
     db.commit()
     db.refresh(db_car)
-    
+
     data = {c.name: getattr(db_car, c.name) for c in db_car.__table__.columns}
     data['showroom_nama'] = showroom.nama_showroom
     return schemas.MobilResponse(**data)
 
 @router.get("/my-cars", response_model=list[schemas.MobilResponse]) # LIHAT PUNYA SENDIRI
 def get_my_cars(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    if current_user.role.lower()!= "showroom": raise HTTPException(403, "Hanya showroom")
+    if current_user.role.lower()!= "showroom":
+        raise HTTPException(403, "Hanya showroom")
+
     cars = db.query(models.Car).filter(models.Car.showroom_id == current_user.showroom_id).order_by(models.Car.id.desc()).all()
     result = []
     for car in cars:
@@ -38,20 +52,25 @@ def get_my_cars(db: Session = Depends(get_db), current_user: models.User = Depen
 
 @router.put("/{mobil_id}") # EDIT TERBATAS
 def update_car(mobil_id: int, mobil: schemas.MobilUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    if current_user.role.lower()!= "showroom": raise HTTPException(403, "Hanya showroom")
+    if current_user.role.lower()!= "showroom":
+        raise HTTPException(403, "Hanya showroom")
+
     car = db.query(models.Car).filter(models.Car.id == mobil_id, models.Car.showroom_id == current_user.showroom_id).first()
-    if not car: raise HTTPException(404, "Mobil tidak ditemukan")
-    
+    if not car:
+        raise HTTPException(404, "Mobil tidak ditemukan atau bukan milik anda")
+
     # Showroom HANYA BOLEH EDIT 3 INI
     if mobil.harga is not None: car.harga = mobil.harga
     if mobil.no_wa is not None: car.no_wa = mobil.no_wa
     if mobil.spesifikasi is not None: car.spesifikasi = mobil.spesifikasi
-    
+
     db.commit()
+    db.refresh(car)
     return {"message": "Data mobil berhasil diupdate"}
 
 @router.get("/all-public", response_model=list[schemas.MobilResponse]) # BUAT WEB INDUK
 def get_cars_public(db: Session = Depends(get_db)):
+    # HANYA TAMPIL YG APPROVED DAN BELUM SOLD
     cars = db.query(models.Car).filter(models.Car.status == "approved", models.Car.status_jual!= "sold").order_by(models.Car.id.desc()).all()
     result = []
     for car in cars:
@@ -60,3 +79,15 @@ def get_cars_public(db: Session = Depends(get_db)):
         data['showroom_nama'] = showroom.nama_showroom if showroom else "Admin Pusat"
         result.append(schemas.MobilResponse(**data))
     return result
+
+@router.get("/{mobil_id}", response_model=schemas.MobilResponse) # DETAIL
+def get_car_detail(mobil_id: int, db: Session = Depends(get_db)):
+    car = db.query(models.Car).filter(models.Car.id == mobil_id).first()
+    if not car:
+        raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
+
+    data = {c.name: getattr(car, c.name) for c in car.__table__.columns}
+    showroom = db.query(models.Showroom).filter(models.Showroom.id == car.showroom_id).first()
+    data['showroom_nama'] = showroom.nama_showroom if showroom else "Admin Pusat"
+
+    return schemas.MobilResponse(**data)
