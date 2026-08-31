@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 import models, schemas
 from database import get_db
-from auth_router import get_current_user # buat ambil user dari token
+from routers.auth_router import get_current_user # <-- UDAH DIGANTI
 
-router = APIRouter() # <-- INI YANG KURANG
+router = APIRouter()
 
 @router.post("/", response_model=schemas.MobilResponse)
 def create_car(mobil: schemas.MobilCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
