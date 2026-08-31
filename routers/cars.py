@@ -1,10 +1,18 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+import models, schemas
+from database import get_db
+from auth_router import get_current_user # buat ambil user dari token
+
+router = APIRouter() # <-- INI YANG KURANG
+
 @router.post("/", response_model=schemas.MobilResponse)
 def create_car(mobil: schemas.MobilCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     # 1. Cek role harus showroom
     if current_user.role.lower() != "showroom":
         raise HTTPException(status_code=403, detail="Hanya showroom yang bisa input mobil")
 
-    # 2. AMBIL SHOWROOM DARI current_user.showroom_id. BUKAN DARI FILTER
+    # 2. AMBIL SHOWROOM DARI current_user.showroom_id
     if not current_user.showroom_id:
         raise HTTPException(status_code=404, detail="Akun ini belum terhubung ke showroom. Hubungi admin")
         
@@ -29,5 +37,29 @@ def create_car(mobil: schemas.MobilCreate, db: Session = Depends(get_db), curren
     # 5. Cast ke response biar ada showroom_nama
     data = {c.name: getattr(db_car, c.name) for c in db_car.__table__.columns}
     data['showroom_nama'] = showroom.nama_showroom
+    
+    return schemas.MobilResponse(**data)
+
+@router.get("/all-public", response_model=list[schemas.MobilResponse])
+def get_cars_public(db: Session = Depends(get_db)):
+    cars = db.query(models.Car).filter(models.Car.status == "approved").order_by(models.Car.id.desc()).all()
+    
+    result = []
+    for car in cars:
+        data = {c.name: getattr(car, c.name) for c in car.__table__.columns}
+        showroom = db.query(models.Showroom).filter(models.Showroom.id == car.showroom_id).first() if car.showroom_id else None
+        data['showroom_nama'] = showroom.nama_showroom if showroom else "Admin Pusat"
+        result.append(schemas.MobilResponse(**data))
+    return result
+
+@router.get("/{mobil_id}", response_model=schemas.MobilResponse)
+def get_car_detail(mobil_id: int, db: Session = Depends(get_db)):
+    car = db.query(models.Car).filter(models.Car.id == mobil_id, models.Car.status == "approved").first()
+    if not car:
+        raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
+    
+    data = {c.name: getattr(car, c.name) for c in car.__table__.columns}
+    showroom = db.query(models.Showroom).filter(models.Showroom.id == car.showroom_id).first() if car.showroom_id else None
+    data['showroom_nama'] = showroom.nama_showroom if showroom else "Admin Pusat"
     
     return schemas.MobilResponse(**data)
