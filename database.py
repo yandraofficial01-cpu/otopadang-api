@@ -8,7 +8,7 @@ engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
     pool_recycle=300,
-    connect_args={"ssl": {"ssl_mode": "REQUIRED"}} # FIX: GANTI - JADI _
+    connect_args={"ssl": {}} # <--- INI DOANG. KOSONGIN AJA
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
