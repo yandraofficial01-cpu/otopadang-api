@@ -56,6 +56,7 @@ class CarCreate(BaseModel):
     tipe: Optional[str] = None
     lokasi: Optional[str] = None
     deskripsi: Optional[str] = None
+    spesifikasi: Optional[str] = None # <--- UDAH DITAMBAH LAGI
     foto_url_1: str # cover wajib
     foto_url_2: Optional[str] = None
     foto_url_3: Optional[str] = None
@@ -66,15 +67,13 @@ class CarCreate(BaseModel):
     foto_url_8: Optional[str] = None
     video_url: Optional[str] = None
     no_wa_showroom: Optional[str] = None
-    # status: Dihapus! Biar backend yg set "pending"
 
 class MobilUpdate(BaseModel):
-    # Showroom HANYA BOLEH EDIT 4 INI
+    # Showroom BOLEH EDIT 4 INI
     harga: Optional[int] = None
     no_wa_showroom: Optional[str] = None
-    spesifikasi: Optional[str] = None # kalo ada
     deskripsi: Optional[str] = None
-    # status: Dihapus! Cuma admin yg boleh
+    spesifikasi: Optional[str] = None # <--- UDAH DITAMBAH LAGI
     class Config:
         extra = "forbid"
 
@@ -95,6 +94,7 @@ class CarResponse(BaseModel):
     tipe: Optional[str] = None
     lokasi: Optional[str] = None
     deskripsi: Optional[str] = None
+    spesifikasi: Optional[str] = None # <--- UDAH DITAMBAH LAGI
     foto_url_1: Optional[str] = None
     foto_url_2: Optional[str] = None
     foto_url_3: Optional[str] = None
@@ -105,8 +105,8 @@ class CarResponse(BaseModel):
     foto_url_8: Optional[str] = None
     video_url: Optional[str] = None
     no_wa_showroom: Optional[str] = None
-    status: str # ini tetep ada buat response
-    status_jual: Optional[str] = None # <--- TAMBAHIN INI JUGA
+    status: str
+    status_jual: Optional[str] = None
     sold_at: Optional[datetime] = None
     created_at: datetime
     showroom_nama: Optional[str] = None
