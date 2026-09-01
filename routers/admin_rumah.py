@@ -7,9 +7,9 @@ import cloudinary
 import cloudinary.uploader
 from database import get_db
 from models import Rumah
-from routers.admin_auth import require_admin # <-- UDAH DIFIX
+from routers.admin_auth import require_admin
 
-router = APIRouter(prefix="/admin/rumah", tags=["Admin Rumah"]) # <-- TAMBAH PREFIX
+router = APIRouter(prefix="/admin/rumah", tags=["Admin Rumah"])
 
 cloudinary.config(
     cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME"),
@@ -88,7 +88,7 @@ def get_all_rumah_admin(db: Session = Depends(get_db), admin = Depends(require_a
 
 @router.post("/")
 def create_rumah(data: RumahCreate, db: Session = Depends(get_db), admin = Depends(require_admin)):
-    new_rumah = Rumah(**data.dict())
+    new_rumah = Rumah(**data.model_dump()) # <--- UDAH DIGANTI
     db.add(new_rumah)
     db.commit()
     db.refresh(new_rumah)
@@ -98,7 +98,7 @@ def create_rumah(data: RumahCreate, db: Session = Depends(get_db), admin = Depen
 def update_rumah(rumah_id: int, data: RumahUpdate, db: Session = Depends(get_db), admin = Depends(require_admin)):
     rumah = db.query(Rumah).filter(Rumah.id == rumah_id).first()
     if not rumah: raise HTTPException(status_code=404, detail="Rumah tidak ditemukan")
-    for key, value in data.dict(exclude_unset=True).items(): setattr(rumah, key, value)
+    for key, value in data.model_dump(exclude_unset=True).items(): setattr(rumah, key, value) # <--- UDAH DIGANTI
     db.commit()
     db.refresh(rumah)
     return {"message": "Rumah berhasil diupdate"}
