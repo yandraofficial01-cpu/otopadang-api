@@ -22,6 +22,3 @@ def get_rumah_detail(rumah_id: int, db: Session = Depends(get_db)):
     if not rumah:
         raise HTTPException(status_code=404, detail="Rumah tidak ditemukan")
     return rumah
-
-
-Jadi apa bener ini kodenya?
