@@ -6,19 +6,19 @@ from models import Showroom, User
 from schemas import RegisterShowroomRequest
 from passlib.context import CryptContext
 
-router = APIRouter(prefix="/admin", tags=["Admin Showroom"]) # <--- FIX: PREFIX CUMA /admin
+router = APIRouter() # KOSONG KARENA PREFIX UDAH DI MAIN
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def get_password_hash(password):
+def get_password_hash(password): 
     return pwd_context.hash(password)
 
-@router.get("/showroom") # <--- GET semua showroom
+@router.get("/admin/showroom/")
 def get_all_showroom(db: Session = Depends(get_db), admin = Depends(require_admin)):
     showrooms = db.query(Showroom).order_by(Showroom.id.desc()).all()
     return showrooms
 
-@router.post("/register-showroom") # <--- TAMBAH INI BIAR GA 404
+@router.post("/admin/register-showroom")
 def register_showroom(data: RegisterShowroomRequest, db: Session = Depends(get_db)):
     # 1. Cek subdomain
     existing_sub = db.query(Showroom).filter(Showroom.subdomain == data.subdomain).first()
@@ -46,10 +46,12 @@ def register_showroom(data: RegisterShowroomRequest, db: Session = Depends(get_d
         subdomain=data.subdomain,
         alamat=data.alamat,
         wa_number=data.wa_number,
+        logo=data.logo, # <--- TAMBAH INI KALAU ADA DI MODEL
+        deskripsi=data.deskripsi, # <--- TAMBAH INI KALAU ADA DI MODEL
         owner_id=new_user.id,
-        status="pending", # masuk antrian approve
-        paket="Gratis",   # default
-        status_bayar="belum_bayar" # default
+        status="pending",
+        paket="Gratis",
+        status_bayar="belum_bayar"
     )
     db.add(new_showroom)
     db.commit()
@@ -64,19 +66,18 @@ def register_showroom(data: RegisterShowroomRequest, db: Session = Depends(get_d
         }
     }
 
-@router.put("/showroom/{showroom_id}/approve")
+@router.put("/admin/showroom/{showroom_id}/approve")
 def approve_showroom(showroom_id: int, db: Session = Depends(get_db), admin = Depends(require_admin)):
     showroom = db.query(Showroom).filter(Showroom.id == showroom_id).first()
     if not showroom:
         raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
     
-    showroom.status = "approved" # <--- UNCOMMENT INI
-    
+    showroom.status = "approved"
     db.commit()
     db.refresh(showroom)
     return {"message": f"Showroom {showroom.nama_showroom} berhasil di approve", "data": showroom}
 
-@router.put("/showroom/{showroom_id}/premium")
+@router.put("/admin/showroom/{showroom_id}/premium")
 def set_premium(showroom_id: int, db: Session = Depends(get_db), admin = Depends(require_admin)):
     showroom = db.query(Showroom).filter(Showroom.id == showroom_id).first()
     if not showroom:
@@ -87,7 +88,7 @@ def set_premium(showroom_id: int, db: Session = Depends(get_db), admin = Depends
     db.refresh(showroom)
     return {"message": f"Showroom {showroom.nama_showroom} sudah Premium", "data": showroom}
 
-@router.delete("/showroom/{showroom_id}")
+@router.delete("/admin/showroom/{showroom_id}")
 def delete_showroom(showroom_id: int, db: Session = Depends(get_db), admin = Depends(require_admin)):
     showroom = db.query(Showroom).filter(Showroom.id == showroom_id).first()
     if not showroom:
