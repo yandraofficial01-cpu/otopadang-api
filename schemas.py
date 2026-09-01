@@ -37,6 +37,7 @@ class ShowroomResponse(BaseModel):
     paket: str
     status_bayar: str
     status: str
+    created_at: Optional[datetime] = None # <--- TAMBAH BIAR AMAN
     class Config:
         from_attributes = True
 
@@ -56,8 +57,8 @@ class CarCreate(BaseModel):
     tipe: Optional[str] = None
     lokasi: Optional[str] = None
     deskripsi: Optional[str] = None
-    spesifikasi: Optional[str] = None # <--- UDAH DITAMBAH LAGI
-    foto_url_1: str # cover wajib
+    spesifikasi: Optional[str] = None
+    foto_url_1: str
     foto_url_2: Optional[str] = None
     foto_url_3: Optional[str] = None
     foto_url_4: Optional[str] = None
@@ -69,11 +70,10 @@ class CarCreate(BaseModel):
     no_wa_showroom: Optional[str] = None
 
 class MobilUpdate(BaseModel):
-    # Showroom BOLEH EDIT 4 INI
     harga: Optional[int] = None
     no_wa_showroom: Optional[str] = None
     deskripsi: Optional[str] = None
-    spesifikasi: Optional[str] = None # <--- UDAH DITAMBAH LAGI
+    spesifikasi: Optional[str] = None
     class Config:
         extra = "forbid"
 
@@ -94,7 +94,7 @@ class CarResponse(BaseModel):
     tipe: Optional[str] = None
     lokasi: Optional[str] = None
     deskripsi: Optional[str] = None
-    spesifikasi: Optional[str] = None # <--- UDAH DITAMBAH LAGI
+    spesifikasi: Optional[str] = None
     foto_url_1: Optional[str] = None
     foto_url_2: Optional[str] = None
     foto_url_3: Optional[str] = None
@@ -108,7 +108,7 @@ class CarResponse(BaseModel):
     status: str
     status_jual: Optional[str] = None
     sold_at: Optional[datetime] = None
-    created_at: datetime
+    created_at: Optional[datetime] = None # <--- INI YG DIGANTI. KASIH OPTIONAL
     showroom_nama: Optional[str] = None
 
     class Config:
@@ -144,7 +144,7 @@ class RumahCreate(BaseModel):
 
 class RumahResponse(RumahCreate):
     id: int
-    created_at: datetime
+    created_at: Optional[datetime] = None # <--- KASIH OPTIONAL JUGA
     class Config:
         from_attributes = True
 
@@ -186,8 +186,8 @@ class BlogResponse(BlogBase):
     id: int
     slug: str
     published_at: Optional[datetime] = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None # <--- KASIH OPTIONAL JUGA
+    updated_at: Optional[datetime] = None # <--- KASIH OPTIONAL JUGA
     class Config:
         from_attributes = True
 
@@ -204,6 +204,6 @@ class LeadRumahCreate(BaseModel):
 
 class LeadRumahResponse(LeadRumahCreate):
     id: int
-    created_at: datetime
+    created_at: Optional[datetime] = None # <--- KASIH OPTIONAL JUGA
     class Config:
         from_attributes = True
