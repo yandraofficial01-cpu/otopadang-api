@@ -3,22 +3,22 @@ from sqlalchemy.orm import Session
 from routers.admin_auth import require_admin
 from database import get_db
 from models import Showroom, User
-from schemas import RegisterShowroomRequest # <--- PAKE INI
+from schemas import RegisterShowroomRequest
 from passlib.context import CryptContext
 
-router = APIRouter(prefix="/admin", tags=["Admin Showroom"])
+router = APIRouter(prefix="/admin", tags=["Admin Showroom"]) # <--- FIX: PREFIX CUMA /admin
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_password_hash(password):
     return pwd_context.hash(password)
 
-@router.get("/showroom")
+@router.get("/showroom") # <--- GET semua showroom
 def get_all_showroom(db: Session = Depends(get_db), admin = Depends(require_admin)):
     showrooms = db.query(Showroom).order_by(Showroom.id.desc()).all()
     return showrooms
 
-@router.post("/register-showroom") # <--- INI YANG BIKIN 404 TADI
+@router.post("/register-showroom") # <--- TAMBAH INI BIAR GA 404
 def register_showroom(data: RegisterShowroomRequest, db: Session = Depends(get_db)):
     # 1. Cek subdomain
     existing_sub = db.query(Showroom).filter(Showroom.subdomain == data.subdomain).first()
@@ -70,7 +70,7 @@ def approve_showroom(showroom_id: int, db: Session = Depends(get_db), admin = De
     if not showroom:
         raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
     
-    showroom.status = "approved"
+    showroom.status = "approved" # <--- UNCOMMENT INI
     
     db.commit()
     db.refresh(showroom)
