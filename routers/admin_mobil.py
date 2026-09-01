@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func # <--- TAMBAH INI
+from sqlalchemy import func
 import models, schemas
 from database import get_db
 from routers.admin_auth import require_admin
 
-router = APIRouter(tags=["Admin Mobil"])
+router = APIRouter(prefix="/admin/mobil", tags=["Admin Mobil"]) # <--- PASTIIN PREFIX ADA DI SINI
 
 def _to_dict(car, showroom_nama):
     mobil_dict = schemas.MobilResponse.model_validate(car).model_dump()
@@ -14,17 +14,20 @@ def _to_dict(car, showroom_nama):
 
 @router.get("/", response_model=list[dict])
 def get_all_mobil_admin(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    # Ambil semua mobil kecuali yang sudah SOLD biar ringan
     results = db.query(models.Car, models.Showroom.nama_showroom.label("showroom_nama")) \
-  .outerjoin(models.Showroom, models.Car.showroom_id == models.Showroom.id) \
-  .order_by(models.Car.id.desc()).all()
+       .outerjoin(models.Showroom, models.Car.showroom_id == models.Showroom.id) \
+       .filter(models.Car.status_jual!= 'sold') \
+       .order_by(models.Car.id.desc()).all()
 
     return [_to_dict(car, showroom_nama) for car, showroom_nama in results]
 
 @router.get("/pending", response_model=list[dict])
 def get_mobil_pending_admin(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
+    # FIX: pake status_jual bukan status
     results = db.query(models.Car, models.Showroom.nama_showroom.label("showroom_nama")) \
-  .outerjoin(models.Showroom, models.Car.showroom_id == models.Showroom.id) \
-  .filter(models.Car.status == 'pending').order_by(models.Car.id.desc()).all()
+       .outerjoin(models.Showroom, models.Car.showroom_id == models.Showroom.id) \
+       .filter(models.Car.status_jual == 'pending').order_by(models.Car.id.desc()).all()
 
     return [_to_dict(car, showroom_nama) for car, showroom_nama in results]
 
@@ -33,8 +36,8 @@ def approve_mobil(mobil_id: int, db: Session = Depends(get_db), current_user: mo
     mobil = db.query(models.Car).filter(models.Car.id == mobil_id).first()
     if not mobil: raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
 
-    mobil.status = "approved"
-    mobil.status_jual = "tersedia" # biar muncul di web induk
+    mobil.status = "approved" # buat admin
+    mobil.status_jual = "tersedia" # buat tampil di web induk
     db.commit()
     db.refresh(mobil)
     return {"message": f"Mobil {mobil.nama_mobil} berhasil di-approve", "data": _to_dict(mobil, None)}
@@ -44,9 +47,9 @@ def sold_mobil(mobil_id: int, db: Session = Depends(get_db), current_user: model
     mobil = db.query(models.Car).filter(models.Car.id == mobil_id).first()
     if not mobil: raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
 
-    mobil.status = "sold" # HILANG DARI WEB INDUK
-    mobil.status_jual = "sold"
-    mobil.sold_at = func.now() # <--- INI SEKARANG AMAN
+    mobil.status = "sold"
+    mobil.status_jual = "sold" # hilang dari web induk
+    mobil.sold_at = func.now()
     db.commit()
     db.refresh(mobil)
     return {"message": f"Mobil {mobil.nama_mobil} ditandai Sold Out", "data": _to_dict(mobil, None)}
