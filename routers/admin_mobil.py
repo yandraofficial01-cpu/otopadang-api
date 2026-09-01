@@ -4,7 +4,7 @@ import models, schemas
 from database import get_db
 from routers.admin_auth import require_admin
 
-router = APIRouter(prefix="/admin/mobil", tags=["Admin Mobil"])
+router = APIRouter(tags=["Admin Mobil"]) # HAPUS PREFIX DARI SINI
 
 def _to_dict(car, showroom_nama):
     mobil_dict = schemas.MobilResponse.model_validate(car).model_dump()
@@ -14,35 +14,35 @@ def _to_dict(car, showroom_nama):
 @router.get("/", response_model=list[dict]) # LIHAT SEMUA MOBIL
 def get_all_mobil_admin(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
     results = db.query(models.Car, models.Showroom.nama_showroom.label("showroom_nama")) \
-     .outerjoin(models.Showroom, models.Car.showroom_id == models.Showroom.id) \
-     .order_by(models.Car.id.desc()).all()
+    .outerjoin(models.Showroom, models.Car.showroom_id == models.Showroom.id) \
+    .order_by(models.Car.id.desc()).all()
 
     return [_to_dict(car, showroom_nama) for car, showroom_nama in results]
 
 @router.get("/pending", response_model=list[dict]) # LIST YG NUNGGU APPROVE
 def get_mobil_pending_admin(db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
     results = db.query(models.Car, models.Showroom.nama_showroom.label("showroom_nama")) \
-     .outerjoin(models.Showroom, models.Car.showroom_id == models.Showroom.id) \
-     .filter(models.Car.status == 'pending').order_by(models.Car.id.desc()).all()
+    .outerjoin(models.Showroom, models.Car.showroom_id == models.Showroom.id) \
+    .filter(models.Car.status == 'pending').order_by(models.Car.id.desc()).all()
 
     return [_to_dict(car, showroom_nama) for car, showroom_nama in results]
 
-@router.put("/{mobil_id}/approve") # KHUS APPROVE
+@router.put("/{mobil_id}/approve") # KHUSUS APPROVE
 def approve_mobil(mobil_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
     mobil = db.query(models.Car).filter(models.Car.id == mobil_id).first()
     if not mobil: raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
 
-    mobil.status = "approved" # <--- PINDAH KE WEB INDUK
+    mobil.status = "approved" # PINDAH KE WEB INDUK
     db.commit()
     db.refresh(mobil)
     return {"message": f"Mobil {mobil.nama_mobil} berhasil di-approve", "data": _to_dict(mobil, None)}
 
-@router.put("/{mobil_id}/sold") # KHUS TANDAI SOLD
+@router.put("/{mobil_id}/sold") # KHUSUS TANDAI SOLD
 def sold_mobil(mobil_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin)):
     mobil = db.query(models.Car).filter(models.Car.id == mobil_id).first()
     if not mobil: raise HTTPException(status_code=404, detail="Mobil tidak ditemukan")
 
-    mobil.status_jual = "sold" # <--- HILANG DARI WEB INDUK
+    mobil.status_jual = "sold" # HILANG DARI WEB INDUK
     db.commit()
     db.refresh(mobil)
     return {"message": f"Mobil {mobil.nama_mobil} ditandai Sold Out", "data": _to_dict(mobil, None)}
