@@ -46,10 +46,10 @@ app.include_router(ai_router.router, prefix="/ai", tags=["AI"])
 
 # ========== DAFTAR ROUTER ADMIN ==========
 app.include_router(admin_auth.router, prefix="/admin/auth", tags=["Admin Auth"])
-app.include_router(admin_showroom.router, prefix="/admin/showroom", tags=["Admin Showroom"])
-app.include_router(admin_mobil.router, prefix="/admin/mobil", tags=["Admin Mobil"])
-app.include_router(admin_rumah.router, tags=["Admin Rumah"]) # <--- INI UDAH DIHAPUS PREFIXNYA
-app.include_router(admin_blog.router, prefix="/admin/blog", tags=["Admin Blog"])
+app.include_router(admin_showroom.router, tags=["Admin Showroom"])  # <--- HAPUS PREFIX
+app.include_router(admin_mobil.router, tags=["Admin Mobil"])        # <--- HAPUS PREFIX  
+app.include_router(admin_rumah.router, tags=["Admin Rumah"]) 
+app.include_router(admin_blog.router, tags=["Admin Blog"])          # <--- HAPUS PREFIX
 
 @app.get("/")
 def read_root():
