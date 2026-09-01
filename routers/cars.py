@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from datetime import datetime # <--- TAMBAH INI
 import models, schemas
 from database import get_db
 from routers.auth_router import get_current_user
 
 router = APIRouter()
 
-@router.post("/", response_model=schemas.MobilResponse) # INPUT BARU
+@router.post("/", response_model=schemas.MobilResponse)
 def create_car(mobil: schemas.MobilCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     if current_user.role.lower()!= "showroom":
         raise HTTPException(status_code=403, detail="Hanya showroom")
@@ -18,7 +19,6 @@ def create_car(mobil: schemas.MobilCreate, db: Session = Depends(get_db), curren
     if not showroom:
         raise HTTPException(status_code=404, detail="Data showroom tidak ditemukan")
 
-    # FIX: BUANG status & status_jual dari body biar gak bentrok
     car_data = mobil.dict(exclude_unset=True)
     car_data.pop("status", None)
     car_data.pop("status_jual", None)
@@ -26,8 +26,9 @@ def create_car(mobil: schemas.MobilCreate, db: Session = Depends(get_db), curren
     db_car = models.Car(
         **car_data,
         showroom_id = showroom.id,
-        status = "pending", # <--- KITA YANG SET
-        status_jual = "tersedia" # <--- KITA YANG SET
+        status = "pending",
+        status_jual = "tersedia",
+        created_at = datetime.utcnow() # <--- FIX: ISI MANUAL BIAR GAK NULL
     )
     db.add(db_car)
     db.commit()
@@ -37,7 +38,7 @@ def create_car(mobil: schemas.MobilCreate, db: Session = Depends(get_db), curren
     data['showroom_nama'] = showroom.nama_showroom
     return schemas.MobilResponse(**data)
 
-@router.get("/my-cars", response_model=list[schemas.MobilResponse]) # LIHAT PUNYA SENDIRI
+@router.get("/my-cars", response_model=list[schemas.MobilResponse])
 def get_my_cars(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     if current_user.role.lower()!= "showroom":
         raise HTTPException(403, "Hanya showroom")
@@ -50,7 +51,7 @@ def get_my_cars(db: Session = Depends(get_db), current_user: models.User = Depen
         result.append(schemas.MobilResponse(**data))
     return result
 
-@router.put("/{mobil_id}") # EDIT TERBATAS
+@router.put("/{mobil_id}")
 def update_car(mobil_id: int, mobil: schemas.MobilUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     if current_user.role.lower()!= "showroom":
         raise HTTPException(403, "Hanya showroom")
@@ -61,9 +62,8 @@ def update_car(mobil_id: int, mobil: schemas.MobilUpdate, db: Session = Depends(
 
     update_data = mobil.dict(exclude_unset=True)
 
-    # Showroom HANYA BOLEH EDIT 4 INI
     if "harga" in update_data: car.harga = update_data["harga"]
-    if "no_wa_showroom" in update_data: car.no_wa_showroom = update_data["no_wa_showroom"] # <--- FIX: no_wa -> no_wa_showroom
+    if "no_wa_showroom" in update_data: car.no_wa_showroom = update_data["no_wa_showroom"]
     if "deskripsi" in update_data: car.deskripsi = update_data["deskripsi"]
     if "spesifikasi" in update_data: car.spesifikasi = update_data["spesifikasi"]
 
@@ -71,9 +71,8 @@ def update_car(mobil_id: int, mobil: schemas.MobilUpdate, db: Session = Depends(
     db.refresh(car)
     return {"message": "Data mobil berhasil diupdate", "data": schemas.MobilResponse.from_orm(car)}
 
-@router.get("/all-public", response_model=list[schemas.MobilResponse]) # BUAT WEB INDUK
+@router.get("/all-public", response_model=list[schemas.MobilResponse])
 def get_cars_public(db: Session = Depends(get_db)):
-    # HANYA TAMPIL YG APPROVED DAN BELUM SOLD
     cars = db.query(models.Car).filter(models.Car.status == "approved", models.Car.status_jual!= "sold").order_by(models.Car.id.desc()).all()
     result = []
     for car in cars:
@@ -83,7 +82,7 @@ def get_cars_public(db: Session = Depends(get_db)):
         result.append(schemas.MobilResponse(**data))
     return result
 
-@router.get("/{mobil_id}", response_model=schemas.MobilResponse) # DETAIL
+@router.get("/{mobil_id}", response_model=schemas.MobilResponse)
 def get_car_detail(mobil_id: int, db: Session = Depends(get_db)):
     car = db.query(models.Car).filter(models.Car.id == mobil_id).first()
     if not car:
