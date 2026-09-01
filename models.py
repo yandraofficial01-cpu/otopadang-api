@@ -53,7 +53,7 @@ class Car(Base):
     lama_angsuran = Column(Integer)
     lokasi = Column(String(255))
     deskripsi = Column(Text)
-    spesifikasi = Column(Text) # <--- TAMBAH INI
+    spesifikasi = Column(Text)
     foto_url_1 = Column(String(255))
     foto_url_2 = Column(String(255))
     foto_url_3 = Column(String(255))
@@ -64,8 +64,8 @@ class Car(Base):
     foto_url_8 = Column(String(255))
     video_url = Column(String(255))
     no_wa_showroom = Column(String(20))
-    status = Column(Enum("pending", "approved", "rejected"), default='pending', index=True) # <--- UBAH JADI ENUM
-    status_jual = Column(Enum("tersedia", "sold", "booking"), default='tersedia', index=True) # <--- TAMBAH INI
+    status = Column(String(20), default='pending', index=True) # <--- GANTI: HAPUS ENUM
+    status_jual = Column(String(20), default='tersedia', index=True) # <--- GANTI: HAPUS ENUM
     sold_at = Column(TIMESTAMP, nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     
