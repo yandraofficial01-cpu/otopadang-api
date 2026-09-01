@@ -13,8 +13,6 @@ from routers import cars, rumah, ai_router, auth_router
 # IMPORT SEMUA ROUTER ADMIN 
 from routers import admin_mobil, admin_rumah, admin_showroom, admin_blog, admin_auth
 
-# HAPUS INI: Base.metadata.create_all(bind=engine)
-
 app = FastAPI(
     title="Otopadang API",
     description="API untuk Otopadang - Mobil, Rumah, Blog, AI",
@@ -43,14 +41,14 @@ app.add_middleware(
 # ========== DAFTAR ROUTER PUBLIC ==========
 app.include_router(auth_router.router, tags=["Auth"]) 
 app.include_router(cars.router, prefix="/cars", tags=["Cars Public"])
-app.include_router(rumah.router, prefix="/rumah", tags=["Rumah Public"])
+app.include_router(rumah.router, tags=["Rumah Public"]) # <--- HAPUS prefix="/rumah"
 app.include_router(ai_router.router, prefix="/ai", tags=["AI"])
 
 # ========== DAFTAR ROUTER ADMIN ==========
 app.include_router(admin_auth.router, prefix="/admin/auth", tags=["Admin Auth"])
 app.include_router(admin_showroom.router, prefix="/admin/showroom", tags=["Admin Showroom"])
 app.include_router(admin_mobil.router, prefix="/admin/mobil", tags=["Admin Mobil"])
-app.include_router(admin_rumah.router, prefix="/admin/rumah", tags=["Admin Rumah"])
+app.include_router(admin_rumah.router, prefix="/admin/rumah", tags=["Admin Rumah"]) # <--- INI BIARIN
 app.include_router(admin_blog.router, prefix="/admin/blog", tags=["Admin Blog"])
 
 @app.get("/")
