@@ -3,23 +3,23 @@ from sqlalchemy.orm import Session
 from routers.admin_auth import require_admin
 from database import get_db
 from models import Showroom, User
-from schemas import ShowroomRegister # <--- kita pake schema
+from schemas import RegisterShowroomRequest # <--- PAKE INI
 from passlib.context import CryptContext
 
-router = APIRouter(prefix="/admin", tags=["Admin Showroom"]) # <--- FIX: PREFIX CUMA /admin
+router = APIRouter(prefix="/admin", tags=["Admin Showroom"])
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_password_hash(password):
     return pwd_context.hash(password)
 
-@router.get("/showroom") # <--- GET semua showroom
+@router.get("/showroom")
 def get_all_showroom(db: Session = Depends(get_db), admin = Depends(require_admin)):
     showrooms = db.query(Showroom).order_by(Showroom.id.desc()).all()
     return showrooms
 
-@router.post("/register-showroom") # <--- INI YANG KURANG TADI
-def register_showroom(data: ShowroomRegister, db: Session = Depends(get_db)):
+@router.post("/register-showroom") # <--- INI YANG BIKIN 404 TADI
+def register_showroom(data: RegisterShowroomRequest, db: Session = Depends(get_db)):
     # 1. Cek subdomain
     existing_sub = db.query(Showroom).filter(Showroom.subdomain == data.subdomain).first()
     if existing_sub:
@@ -46,10 +46,10 @@ def register_showroom(data: ShowroomRegister, db: Session = Depends(get_db)):
         subdomain=data.subdomain,
         alamat=data.alamat,
         wa_number=data.wa_number,
-        logo=data.logo,
-        deskripsi=data.deskripsi,
         owner_id=new_user.id,
-        status="pending" # masuk antrian approve
+        status="pending", # masuk antrian approve
+        paket="Gratis",   # default
+        status_bayar="belum_bayar" # default
     )
     db.add(new_showroom)
     db.commit()
@@ -70,7 +70,7 @@ def approve_showroom(showroom_id: int, db: Session = Depends(get_db), admin = De
     if not showroom:
         raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
     
-    showroom.status = "approved" # <--- UNCOMMENT INI
+    showroom.status = "approved"
     
     db.commit()
     db.refresh(showroom)
