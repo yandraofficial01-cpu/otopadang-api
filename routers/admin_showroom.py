@@ -1,31 +1,82 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from routers.admin_auth import require_admin  # <-- GANTI TITIK JADI routers
+from routers.admin_auth import require_admin
 from database import get_db
-from models import Showroom
+from models import Showroom, User
+from schemas import ShowroomRegister # <--- kita pake schema
+from passlib.context import CryptContext
 
-router = APIRouter(prefix="/admin/showroom", tags=["Admin Showroom"]) # <-- TAMBAH PREFIX
+router = APIRouter(prefix="/admin", tags=["Admin Showroom"]) # <--- FIX: PREFIX CUMA /admin
 
-@router.get("/")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+@router.get("/showroom") # <--- GET semua showroom
 def get_all_showroom(db: Session = Depends(get_db), admin = Depends(require_admin)):
-    # Sementara ambil semua dulu. Nanti kalau kolom status udah ada baru pakai filter
-    showrooms = db.query(Showroom).all()
+    showrooms = db.query(Showroom).order_by(Showroom.id.desc()).all()
     return showrooms
 
-@router.put("/{showroom_id}/approve")
+@router.post("/register-showroom") # <--- INI YANG KURANG TADI
+def register_showroom(data: ShowroomRegister, db: Session = Depends(get_db)):
+    # 1. Cek subdomain
+    existing_sub = db.query(Showroom).filter(Showroom.subdomain == data.subdomain).first()
+    if existing_sub:
+        raise HTTPException(status_code=400, detail="Subdomain sudah dipakai")
+    
+    # 2. Cek email
+    existing_user = db.query(User).filter(User.email == data.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email sudah terdaftar")
+
+    # 3. Buat User
+    new_user = User(
+        email=data.email,
+        hashed_password=get_password_hash(data.password),
+        role="showroom"
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    # 4. Buat Showroom
+    new_showroom = Showroom(
+        nama_showroom=data.nama_showroom,
+        subdomain=data.subdomain,
+        alamat=data.alamat,
+        wa_number=data.wa_number,
+        logo=data.logo,
+        deskripsi=data.deskripsi,
+        owner_id=new_user.id,
+        status="pending" # masuk antrian approve
+    )
+    db.add(new_showroom)
+    db.commit()
+    db.refresh(new_showroom)
+
+    return {
+        "message": "Registrasi Berhasil! Menunggu approval admin",
+        "data": {
+            "nama_showroom": new_showroom.nama_showroom,
+            "subdomain": new_showroom.subdomain,
+            "url": f"https://{new_showroom.subdomain}.otopadang.com"
+        }
+    }
+
+@router.put("/showroom/{showroom_id}/approve")
 def approve_showroom(showroom_id: int, db: Session = Depends(get_db), admin = Depends(require_admin)):
     showroom = db.query(Showroom).filter(Showroom.id == showroom_id).first()
     if not showroom:
         raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
     
-    # Kalau kolom status belum ada di model, comment dulu baris ini
-    # showroom.status = "approved"
+    showroom.status = "approved" # <--- UNCOMMENT INI
     
     db.commit()
     db.refresh(showroom)
     return {"message": f"Showroom {showroom.nama_showroom} berhasil di approve", "data": showroom}
 
-@router.put("/{showroom_id}/premium")
+@router.put("/showroom/{showroom_id}/premium")
 def set_premium(showroom_id: int, db: Session = Depends(get_db), admin = Depends(require_admin)):
     showroom = db.query(Showroom).filter(Showroom.id == showroom_id).first()
     if not showroom:
@@ -36,7 +87,7 @@ def set_premium(showroom_id: int, db: Session = Depends(get_db), admin = Depends
     db.refresh(showroom)
     return {"message": f"Showroom {showroom.nama_showroom} sudah Premium", "data": showroom}
 
-@router.delete("/{showroom_id}")
+@router.delete("/showroom/{showroom_id}")
 def delete_showroom(showroom_id: int, db: Session = Depends(get_db), admin = Depends(require_admin)):
     showroom = db.query(Showroom).filter(Showroom.id == showroom_id).first()
     if not showroom:
