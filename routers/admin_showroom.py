@@ -51,8 +51,8 @@ def register_showroom(data: RegisterShowroomRequest, db: Session = Depends(get_d
         showroom_id=new_showroom.id,
         name=data.nama_showroom,
         email=data.email,
-        password=get_password_hash(data.password), # FIX: password bukan hashed_password
-        phone=data.wa_number, # optional, biar sekalian
+        password=get_password_hash(data.password),
+        phone=data.wa_number,
         role="showroom",
         status="pending"
     )
@@ -79,16 +79,22 @@ def approve_showroom(showroom_id: int, db: Session = Depends(get_db), admin = De
     db.refresh(showroom)
     return {"message": f"Showroom {showroom.nama_showroom} berhasil di approve", "data": showroom}
 
-@router.put("/admin/showroom/{showroom_id}/premium")
-def set_premium(showroom_id: int, db: Session = Depends(get_db), admin = Depends(require_admin)):
+# 1. GANTI DARI /premium JADI /paket
+@router.put("/admin/showroom/{showroom_id}/paket")
+def update_paket(showroom_id: int, data: dict, db: Session = Depends(get_db), admin = Depends(require_admin)):
     showroom = db.query(Showroom).filter(Showroom.id == showroom_id).first()
     if not showroom:
         raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
     
-    showroom.paket = "Premium"
+    # 2. VALIDASI: cuma boleh Premium atau Gratis
+    paket_baru = data.get('paket')
+    if paket_baru not in ['Premium', 'Gratis']:
+        raise HTTPException(status_code=400, detail="Paket harus Premium atau Gratis")
+    
+    showroom.paket = paket_baru
     db.commit()
     db.refresh(showroom)
-    return {"message": f"Showroom {showroom.nama_showroom} sudah Premium", "data": showroom}
+    return {"message": f"Paket {showroom.nama_showroom} diubah ke {showroom.paket}", "data": showroom}
 
 @router.delete("/admin/showroom/{showroom_id}")
 def delete_showroom(showroom_id: int, db: Session = Depends(get_db), admin = Depends(require_admin)):
