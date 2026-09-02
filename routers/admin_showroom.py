@@ -30,32 +30,34 @@ def register_showroom(data: RegisterShowroomRequest, db: Session = Depends(get_d
     if existing_user:
         raise HTTPException(status_code=400, detail="Email sudah terdaftar")
 
-    # 3. Buat User
-    new_user = User(
-        email=data.email,
-        hashed_password=get_password_hash(data.password),
-        role="showroom"
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-
-    # 4. Buat Showroom
+    # 3. Buat Showroom DULU biar dapet ID
     new_showroom = Showroom(
         nama_showroom=data.nama_showroom,
         subdomain=data.subdomain,
         alamat=data.alamat,
         wa_number=data.wa_number,
-        logo=data.logo, # <--- TAMBAH INI KALAU ADA DI MODEL
-        deskripsi=data.deskripsi, # <--- TAMBAH INI KALAU ADA DI MODEL
-        owner_id=new_user.id,
+        logo=data.logo,
+        deskripsi=data.deskripsi,
         status="pending",
         paket="Gratis",
         status_bayar="belum_bayar"
     )
     db.add(new_showroom)
     db.commit()
-    db.refresh(new_showroom)
+    db.refresh(new_showroom) # WAJIB biar dapet new_showroom.id
+
+    # 4. Baru Buat User pake showroom_id
+    new_user = User(
+        showroom_id=new_showroom.id,
+        name=data.nama_showroom,
+        email=data.email,
+        password=get_password_hash(data.password), # FIX: password bukan hashed_password
+        phone=data.wa_number, # optional, biar sekalian
+        role="showroom",
+        status="pending"
+    )
+    db.add(new_user)
+    db.commit()
 
     return {
         "message": "Registrasi Berhasil! Menunggu approval admin",
@@ -93,6 +95,9 @@ def delete_showroom(showroom_id: int, db: Session = Depends(get_db), admin = Dep
     showroom = db.query(Showroom).filter(Showroom.id == showroom_id).first()
     if not showroom:
         raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
+    
+    # Hapus user dulu biar ga error foreign key
+    db.query(User).filter(User.showroom_id == showroom_id).delete()
     
     db.delete(showroom)
     db.commit()
