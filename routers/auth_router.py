@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload # TAMBAH INI
 from database import get_db
 from models import User, Showroom
 import bcrypt
@@ -29,7 +29,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")  # PENTING: pake "sub" bukan "email"
+        email: str = payload.get("sub")
         if email is None:
             raise credentials_exception
     except JWTError:
@@ -67,9 +67,9 @@ def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = D
         name=showroom.nama_showroom,
         email=showroom.email,
         phone=showroom.wa_number,
-        password=hashed_password, # pastikan di models.py kolomnya 'password'
+        password=hashed_password,
         role='showroom',
-        status='active'
+        status='pending' # FIX: GANTI DARI active KE pending
     )
     db.add(new_user)
     db.commit()
@@ -79,19 +79,24 @@ def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = D
 
 @router.post("/login")
 def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == request.email).first()
+    # FIX: JOIN KE SHOWROOM BIAR BISA CEK STATUS SHOWROOM JUGA
+    user = db.query(User).options(joinedload(User.showroom)).filter(User.email == request.email).first()
     if not user:
         raise HTTPException(status_code=400, detail="Email atau password salah")
     
-    # 1. CEK STATUS
-    if user.status != 'active':
+    # FIX 1: CEK STATUS USER
+    if user.status != 'approved':
         raise HTTPException(status_code=403, detail="Akun belum aktif. Hubungi admin")
     
-    # 2. CEK PASSWORD
+    # FIX 2: KALAU SHOWROOM, CEK STATUS SHOWROOM JUGA
+    if user.role == 'showroom' and user.showroom.status != 'approved':
+        raise HTTPException(status_code=403, detail="Showroom belum diapprove admin")
+    
+    # 3. CEK PASSWORD
     if not verify_password(request.password, user.password):
         raise HTTPException(status_code=400, detail="Email atau password salah")
     
-    # 3. BIKIN TOKEN - KUNCI DI "sub"
+    # 4. BIKIN TOKEN
     access_token = create_access_token(data={
         "sub": user.email, 
         "role": user.role, 
@@ -122,14 +127,14 @@ def reset_admin(db: Session = Depends(get_db)):
             phone="08979879518",
             password=new_hash,
             role="admin",
-            status="active",
+            status="approved", # FIX
             showroom_id=None
         )
         db.add(user)
     else:
         user.password = new_hash
         user.role = "admin"
-        user.status = "active"
+        user.status = "approved" # FIX
     
     db.commit()
     return {"msg": "Admin reset berhasil. Password: admin123"}
@@ -142,6 +147,6 @@ def reset_showroom_password(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User tidak ditemukan")
     
     user.password = new_hash
-    user.status = "active"
+    user.status = "approved" # FIX
     db.commit()
     return {"msg": f"Password user {user.email} direset ke 123456"}
