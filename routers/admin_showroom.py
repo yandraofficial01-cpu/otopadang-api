@@ -15,10 +15,9 @@ def get_password_hash(password):
 
 @router.get("/admin/showroom/")
 def get_all_showroom(db: Session = Depends(get_db), admin = Depends(require_admin)):
-    # UDAH DI JOIN KE USER BIAR FE BISA LIAT STATUS USER
-    showrooms = db.query(Showroom).options(joinedload(Showroom.user)).order_by(Showroom.id.desc()).all()
+    # FIX: GANTI user -> users
+    showrooms = db.query(Showroom).options(joinedload(Showroom.users)).order_by(Showroom.id.desc()).all()
     return showrooms
-
 
 @router.post("/admin/register-showroom")
 def register_showroom(data: RegisterShowroomRequest, db: Session = Depends(get_db)):
@@ -70,7 +69,6 @@ def register_showroom(data: RegisterShowroomRequest, db: Session = Depends(get_d
         }
     }
 
-
 @router.put("/admin/showroom/{showroom_id}/approve")
 def approve_showroom(showroom_id: int, db: Session = Depends(get_db), admin = Depends(require_admin)):
     showroom = db.query(Showroom).filter(Showroom.id == showroom_id).first()
@@ -80,10 +78,10 @@ def approve_showroom(showroom_id: int, db: Session = Depends(get_db), admin = De
     # 1. APPROVE SHOWROOM
     showroom.status = "approved"
     
-    # 2. LANGSUNG APPROVE USER JUGA. GANTI active -> approved
+    # 2. LANGSUNG APPROVE USER JUGA
     user = db.query(User).filter(User.showroom_id == showroom_id).first()
     if user:
-        user.status = "approved" # FIX: harus sama kayak di DB
+        user.status = "approved" # UDAH SAMA
     else:
         raise HTTPException(status_code=404, detail="User untuk showroom ini tidak ditemukan")
     
@@ -93,7 +91,6 @@ def approve_showroom(showroom_id: int, db: Session = Depends(get_db), admin = De
         "message": f"Showroom {showroom.nama_showroom} & User berhasil diaktifkan", 
         "data": showroom
     }
-
 
 @router.put("/admin/user/{user_id}/status") # ENDPOINT BARU BUAT STEL DARI FE
 def update_user_status(user_id: int, new_status: str, db: Session = Depends(get_db), admin = Depends(require_admin)):
@@ -112,7 +109,6 @@ def update_user_status(user_id: int, new_status: str, db: Session = Depends(get_
     
     return {"message": f"Status user {user.email} diubah jadi {new_status}"}
 
-
 @router.put("/admin/showroom/{showroom_id}/paket")
 def update_paket(showroom_id: int, data: dict, db: Session = Depends(get_db), admin = Depends(require_admin)):
     showroom = db.query(Showroom).filter(Showroom.id == showroom_id).first()
@@ -127,7 +123,6 @@ def update_paket(showroom_id: int, data: dict, db: Session = Depends(get_db), ad
     db.commit()
     db.refresh(showroom)
     return {"message": f"Paket {showroom.nama_showroom} diubah ke {showroom.paket}", "data": showroom}
-
 
 @router.delete("/admin/showroom/{showroom_id}")
 def delete_showroom(showroom_id: int, db: Session = Depends(get_db), admin = Depends(require_admin)):
