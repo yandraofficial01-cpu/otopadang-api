@@ -74,19 +74,29 @@ def approve_showroom(showroom_id: int, db: Session = Depends(get_db), admin = De
     if not showroom:
         raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
     
+    # 1. APPROVE SHOWROOM
     showroom.status = "approved"
+    
+    # 2. LANGSUNG APPROVE USER JUGA
+    user = db.query(User).filter(User.showroom_id == showroom_id).first()
+    if user:
+        user.status = "active" # biar sama kayak Oto Solok & Rancak
+    else:
+        raise HTTPException(status_code=404, detail="User untuk showroom ini tidak ditemukan")
+    
     db.commit()
     db.refresh(showroom)
-    return {"message": f"Showroom {showroom.nama_showroom} berhasil di approve", "data": showroom}
+    return {
+        "message": f"Showroom {showroom.nama_showroom} & User berhasil diaktifkan", 
+        "data": showroom
+    }
 
-# 1. GANTI DARI /premium JADI /paket
 @router.put("/admin/showroom/{showroom_id}/paket")
 def update_paket(showroom_id: int, data: dict, db: Session = Depends(get_db), admin = Depends(require_admin)):
     showroom = db.query(Showroom).filter(Showroom.id == showroom_id).first()
     if not showroom:
         raise HTTPException(status_code=404, detail="Showroom tidak ditemukan")
     
-    # 2. VALIDASI: cuma boleh Premium atau Gratis
     paket_baru = data.get('paket')
     if paket_baru not in ['Premium', 'Gratis']:
         raise HTTPException(status_code=400, detail="Paket harus Premium atau Gratis")
