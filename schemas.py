@@ -14,6 +14,8 @@ class RegisterShowroomRequest(BaseModel):
     wa_number: str
     email: EmailStr
     password: str = Field(..., min_length=6)
+    logo: Optional[str] = None # <--- INI YG KURANG
+    deskripsi: Optional[str] = None # <--- INI YG KURANG
 
 # ========== SHOWROOM ==========
 class ShowroomCreate(BaseModel):
@@ -37,7 +39,7 @@ class ShowroomResponse(BaseModel):
     paket: str
     status_bayar: str
     status: str
-    created_at: Optional[datetime] = None # <--- TAMBAH BIAR AMAN
+    created_at: Optional[datetime] = None
     class Config:
         from_attributes = True
 
@@ -108,7 +110,7 @@ class CarResponse(BaseModel):
     status: str
     status_jual: Optional[str] = None
     sold_at: Optional[datetime] = None
-    created_at: Optional[datetime] = None # <--- INI YG DIGANTI. KASIH OPTIONAL
+    created_at: Optional[datetime] = None
     showroom_nama: Optional[str] = None
 
     class Config:
@@ -144,7 +146,7 @@ class RumahCreate(BaseModel):
 
 class RumahResponse(RumahCreate):
     id: int
-    created_at: Optional[datetime] = None # <--- KASIH OPTIONAL JUGA
+    created_at: Optional[datetime] = None
     class Config:
         from_attributes = True
 
@@ -186,8 +188,8 @@ class BlogResponse(BlogBase):
     id: int
     slug: str
     published_at: Optional[datetime] = None
-    created_at: Optional[datetime] = None # <--- KASIH OPTIONAL JUGA
-    updated_at: Optional[datetime] = None # <--- KASIH OPTIONAL JUGA
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     class Config:
         from_attributes = True
 
@@ -204,6 +206,6 @@ class LeadRumahCreate(BaseModel):
 
 class LeadRumahResponse(LeadRumahCreate):
     id: int
-    created_at: Optional[datetime] = None # <--- KASIH OPTIONAL JUGA
+    created_at: Optional[datetime] = None
     class Config:
         from_attributes = True
