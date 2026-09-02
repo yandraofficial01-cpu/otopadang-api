@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload # TAMBAH joinedload
 from routers.admin_auth import require_admin
 from database import get_db
 from models import Showroom, User
@@ -15,8 +15,10 @@ def get_password_hash(password):
 
 @router.get("/admin/showroom/")
 def get_all_showroom(db: Session = Depends(get_db), admin = Depends(require_admin)):
-    showrooms = db.query(Showroom).order_by(Showroom.id.desc()).all()
+    # UDAH DI JOIN KE USER BIAR FE BISA LIAT STATUS USER
+    showrooms = db.query(Showroom).options(joinedload(Showroom.user)).order_by(Showroom.id.desc()).all()
     return showrooms
+
 
 @router.post("/admin/register-showroom")
 def register_showroom(data: RegisterShowroomRequest, db: Session = Depends(get_db)):
@@ -44,7 +46,7 @@ def register_showroom(data: RegisterShowroomRequest, db: Session = Depends(get_d
     )
     db.add(new_showroom)
     db.commit()
-    db.refresh(new_showroom) # WAJIB biar dapet new_showroom.id
+    db.refresh(new_showroom)
 
     # 4. Baru Buat User pake showroom_id
     new_user = User(
@@ -54,7 +56,7 @@ def register_showroom(data: RegisterShowroomRequest, db: Session = Depends(get_d
         password=get_password_hash(data.password),
         phone=data.wa_number,
         role="showroom",
-        status="pending"
+        status="pending" # default pending
     )
     db.add(new_user)
     db.commit()
@@ -68,6 +70,7 @@ def register_showroom(data: RegisterShowroomRequest, db: Session = Depends(get_d
         }
     }
 
+
 @router.put("/admin/showroom/{showroom_id}/approve")
 def approve_showroom(showroom_id: int, db: Session = Depends(get_db), admin = Depends(require_admin)):
     showroom = db.query(Showroom).filter(Showroom.id == showroom_id).first()
@@ -77,10 +80,10 @@ def approve_showroom(showroom_id: int, db: Session = Depends(get_db), admin = De
     # 1. APPROVE SHOWROOM
     showroom.status = "approved"
     
-    # 2. LANGSUNG APPROVE USER JUGA
+    # 2. LANGSUNG APPROVE USER JUGA. GANTI active -> approved
     user = db.query(User).filter(User.showroom_id == showroom_id).first()
     if user:
-        user.status = "active" # biar sama kayak Oto Solok & Rancak
+        user.status = "approved" # FIX: harus sama kayak di DB
     else:
         raise HTTPException(status_code=404, detail="User untuk showroom ini tidak ditemukan")
     
@@ -90,6 +93,25 @@ def approve_showroom(showroom_id: int, db: Session = Depends(get_db), admin = De
         "message": f"Showroom {showroom.nama_showroom} & User berhasil diaktifkan", 
         "data": showroom
     }
+
+
+@router.put("/admin/user/{user_id}/status") # ENDPOINT BARU BUAT STEL DARI FE
+def update_user_status(user_id: int, new_status: str, db: Session = Depends(get_db), admin = Depends(require_admin)):
+    """
+    Body: { "new_status": "approved" } atau { "new_status": "pending" }
+    """
+    if new_status not in ["approved", "pending"]:
+        raise HTTPException(status_code=400, detail="Status harus approved atau pending")
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+    
+    user.status = new_status
+    db.commit()
+    
+    return {"message": f"Status user {user.email} diubah jadi {new_status}"}
+
 
 @router.put("/admin/showroom/{showroom_id}/paket")
 def update_paket(showroom_id: int, data: dict, db: Session = Depends(get_db), admin = Depends(require_admin)):
@@ -105,6 +127,7 @@ def update_paket(showroom_id: int, data: dict, db: Session = Depends(get_db), ad
     db.commit()
     db.refresh(showroom)
     return {"message": f"Paket {showroom.nama_showroom} diubah ke {showroom.paket}", "data": showroom}
+
 
 @router.delete("/admin/showroom/{showroom_id}")
 def delete_showroom(showroom_id: int, db: Session = Depends(get_db), admin = Depends(require_admin)):
