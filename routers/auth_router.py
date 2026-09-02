@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.responses import JSONResponse # TAMBAH INI
 from jose import JWTError, jwt
-from sqlalchemy.orm import Session, joinedload # TAMBAH INI
+from sqlalchemy.orm import Session, joinedload
 from database import get_db
 from models import User, Showroom
 import bcrypt
@@ -69,7 +70,7 @@ def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = D
         phone=showroom.wa_number,
         password=hashed_password,
         role='showroom',
-        status='pending' # FIX: GANTI DARI active KE pending
+        status='pending'
     )
     db.add(new_user)
     db.commit()
@@ -79,31 +80,29 @@ def register_showroom(showroom: schemas.RegisterShowroomRequest, db: Session = D
 
 @router.post("/login")
 def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
-    # FIX: JOIN KE SHOWROOM BIAR BISA CEK STATUS SHOWROOM JUGA
     user = db.query(User).options(joinedload(User.showroom)).filter(User.email == request.email).first()
     if not user:
         raise HTTPException(status_code=400, detail="Email atau password salah")
     
-    # FIX 1: CEK STATUS USER
     if user.status != 'approved':
         raise HTTPException(status_code=403, detail="Akun belum aktif. Hubungi admin")
     
-    # FIX 2: KALAU SHOWROOM, CEK STATUS SHOWROOM JUGA
     if user.role == 'showroom' and user.showroom.status != 'approved':
         raise HTTPException(status_code=403, detail="Showroom belum diapprove admin")
     
-    # 3. CEK PASSWORD
     if not verify_password(request.password, user.password):
         raise HTTPException(status_code=400, detail="Email atau password salah")
     
-    # 4. BIKIN TOKEN
     access_token = create_access_token(data={
         "sub": user.email, 
         "role": user.role, 
         "showroom_id": user.showroom_id
     })
 
-    return {
+    # KUNCI: NAMA COOKIE BEDA BERDASARKAN ROLE
+    cookie_name = "admin_token" if user.role == "admin" else "showroom_token"
+
+    response = JSONResponse(content={
         "access_token": access_token,
         "token_type": "bearer",
         "user": {
@@ -113,7 +112,16 @@ def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
             "showroom_id": user.showroom_id,
             "nama": user.name
         }
-    }
+    })
+    response.set_cookie(
+        key=cookie_name,
+        value=access_token,
+        httponly=True,   # JS gak bisa baca. Aman
+        samesite="lax",
+        secure=False,    # kalau udah https di railway ganti True
+        max_age=60*60*24*7 # 7 hari
+    )
+    return response
 
 # UTILITY BUAT RESET
 @router.post("/reset-admin")
@@ -127,14 +135,14 @@ def reset_admin(db: Session = Depends(get_db)):
             phone="08979879518",
             password=new_hash,
             role="admin",
-            status="approved", # FIX
+            status="approved",
             showroom_id=None
         )
         db.add(user)
     else:
         user.password = new_hash
         user.role = "admin"
-        user.status = "approved" # FIX
+        user.status = "approved"
     
     db.commit()
     return {"msg": "Admin reset berhasil. Password: admin123"}
@@ -147,6 +155,6 @@ def reset_showroom_password(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User tidak ditemukan")
     
     user.password = new_hash
-    user.status = "approved" # FIX
+    user.status = "approved"
     db.commit()
     return {"msg": f"Password user {user.email} direset ke 123456"}
