@@ -99,7 +99,7 @@ def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
         "showroom_id": user.showroom_id
     })
 
-    # KUNCI: NAMA COOKIE BEDA BERDASARKAN ROLE
+    # KUNCI: BEDA COOKIE BIAR GAK KETIMPA
     cookie_name = "admin_token" if user.role == "admin" else "showroom_token"
 
     response = JSONResponse(content={
