@@ -12,12 +12,9 @@ import os
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
-SECRET_KEY = os.getenv("SECRET_KEY", "rahasia-super-penting-ganti-di-railway") 
+SECRET_KEY = os.getenv("SECRET_KEY", "rahasia-super-penting-ganti-di-vercel") 
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
-
-# Cek apakah lagi di production https
-IS_PROD = os.getenv("RAILWAY_ENVIRONMENT") == "production" or "railway" in os.getenv("DOMAIN", "")
 
 def hash_password(password: str):
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -120,8 +117,8 @@ def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
         key=cookie_name,
         value=access_token,
         httponly=True,
-        samesite="lax",
-        secure=IS_PROD,  # <-- INI YG DIGANTI. True di prod, False di local
+        samesite="none",  # WAJIB NONE untuk cross-site Vercel
+        secure=True,      # WAJIB TRUE untuk https Vercel
         max_age=60*60*24*7,
         path="/"
     )
