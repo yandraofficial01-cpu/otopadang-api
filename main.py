@@ -10,8 +10,8 @@ from database import engine, get_db
 # IMPORT SEMUA ROUTER PUBLIC
 from routers import cars, rumah, ai_router, auth_router
 
-# IMPORT SEMUA ROUTER ADMIN 
-from routers import admin_mobil, admin_rumah, admin_showroom, admin_blog, admin_auth
+# IMPORT SEMUA ROUTER ADMIN - HAPUS admin_auth
+from routers import admin_mobil, admin_rumah, admin_showroom, admin_blog
 
 app = FastAPI(
     title="Otopadang API",
@@ -30,22 +30,22 @@ app.add_middleware(
         "http://localhost:3000",            
         "https://otopadang.com",             
         "https://www.otopadang.com",         
-        "https://otopadang-frontend.vercel.app",
-        "https://otopadang-frontend-vtm8itdc9-yandraofficial01-9603s-projects.vercel.app",
+        "https://otopadang-frontend.vercel.app", # FE USER
+        "https://otopadang-frontend-l9nqxqv9p-yandraofficial01-9603s-projects.vercel.app", # FE ADMIN
     ],
-    allow_credentials=True, # WAJIB BUAT COOKIE
+    allow_credentials=True, # WAJIB BUAT COOKIE CROSS DOMAIN
     allow_methods=["*"], 
     allow_headers=["*"],
 )
 
 # ========== DAFTAR ROUTER PUBLIC ==========
-app.include_router(auth_router.router, tags=["Auth"]) 
+app.include_router(auth_router.router, prefix="/auth", tags=["Auth"]) # KASIH PREFIX /auth
 app.include_router(cars.router, prefix="/cars", tags=["Cars Public"])
 app.include_router(rumah.router, tags=["Rumah Public"]) 
 app.include_router(ai_router.router, prefix="/ai", tags=["AI"])
 
 # ========== DAFTAR ROUTER ADMIN = TANPA PREFIX KARENA UDAH DI FILE ==========
-app.include_router(admin_auth.router, prefix="/admin/auth", tags=["Admin Auth"])
+# HAPUS admin_auth.router
 app.include_router(admin_showroom.router, tags=["Admin Showroom"])  
 app.include_router(admin_mobil.router, tags=["Admin Mobil"])        
 app.include_router(admin_rumah.router, tags=["Admin Rumah"]) 
