@@ -33,7 +33,7 @@ app.add_middleware(
         "https://otopadang-frontend.vercel.app",
         "https://otopadang-frontend-vtm8itdc9-yandraofficial01-9603s-projects.vercel.app",
     ],
-    allow_credentials=True,
+    allow_credentials=True, # WAJIB BUAT COOKIE
     allow_methods=["*"], 
     allow_headers=["*"],
 )
@@ -44,12 +44,12 @@ app.include_router(cars.router, prefix="/cars", tags=["Cars Public"])
 app.include_router(rumah.router, tags=["Rumah Public"]) 
 app.include_router(ai_router.router, prefix="/ai", tags=["AI"])
 
-# ========== DAFTAR ROUTER ADMIN ==========
+# ========== DAFTAR ROUTER ADMIN = TANPA PREFIX KARENA UDAH DI FILE ==========
 app.include_router(admin_auth.router, prefix="/admin/auth", tags=["Admin Auth"])
-app.include_router(admin_showroom.router, tags=["Admin Showroom"])  # <--- HAPUS PREFIX
-app.include_router(admin_mobil.router, tags=["Admin Mobil"])        # <--- HAPUS PREFIX  
+app.include_router(admin_showroom.router, tags=["Admin Showroom"])  
+app.include_router(admin_mobil.router, tags=["Admin Mobil"])        
 app.include_router(admin_rumah.router, tags=["Admin Rumah"]) 
-app.include_router(admin_blog.router, tags=["Admin Blog"])          # <--- HAPUS PREFIX
+app.include_router(admin_blog.router, tags=["Admin Blog"])  
 
 @app.get("/")
 def read_root():
