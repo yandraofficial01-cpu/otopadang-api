@@ -87,7 +87,7 @@ def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
     if user.status != 'approved':
         raise HTTPException(status_code=403, detail="Akun belum aktif. Hubungi admin")
     
-    if user.role == 'showroom' and user.showroom.status != 'approved':
+    if user.role == 'showroom' and user.showroom and user.showroom.status != 'approved':
         raise HTTPException(status_code=403, detail="Showroom belum diapprove admin")
     
     if not verify_password(request.password, user.password):
@@ -119,8 +119,8 @@ def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
         httponly=True,
         samesite="none",  # WAJIB NONE untuk cross-site Vercel
         secure=True,      # WAJIB TRUE untuk https Vercel
-        max_age=60*60*24*7,
-        path="/"
+        max_age=60*60*24*7, # 7 hari
+        path="/" # WAJIB biar kebaca di semua path
     )
     return response
 
