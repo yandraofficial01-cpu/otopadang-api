@@ -39,13 +39,13 @@ app.add_middleware(
 )
 
 # ========== DAFTAR ROUTER PUBLIC ==========
-app.include_router(auth_router.router, prefix="/auth", tags=["Auth"]) # KASIH PREFIX /auth
+# HAPUS prefix="/auth" KARENA UDAH ADA DI auth_router.py
+app.include_router(auth_router.router, tags=["Auth"]) 
 app.include_router(cars.router, prefix="/cars", tags=["Cars Public"])
 app.include_router(rumah.router, tags=["Rumah Public"]) 
 app.include_router(ai_router.router, prefix="/ai", tags=["AI"])
 
 # ========== DAFTAR ROUTER ADMIN = TANPA PREFIX KARENA UDAH DI FILE ==========
-# HAPUS admin_auth.router
 app.include_router(admin_showroom.router, tags=["Admin Showroom"])  
 app.include_router(admin_mobil.router, tags=["Admin Mobil"])        
 app.include_router(admin_rumah.router, tags=["Admin Rumah"]) 
