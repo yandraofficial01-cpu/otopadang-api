@@ -30,8 +30,8 @@ app.add_middleware(
         "http://localhost:3000",            
         "https://otopadang.com",             
         "https://www.otopadang.com",         
-        "https://otopadang-frontend.vercel.app", # FE USER
-        "https://otopadang-frontend-l9nqxqv9p-yandraofficial01-9603s-projects.vercel.app", # FE ADMIN
+        "https://otopadang-frontend.vercel.app", # FE USER PROD
+        "https://*.vercel.app" # INI KUNCINYA - IZININ SEMUA FE VERCEL
     ],
     allow_credentials=True, # WAJIB BUAT COOKIE CROSS DOMAIN
     allow_methods=["*"], 
@@ -39,13 +39,12 @@ app.add_middleware(
 )
 
 # ========== DAFTAR ROUTER PUBLIC ==========
-# HAPUS prefix="/auth" KARENA UDAH ADA DI auth_router.py
 app.include_router(auth_router.router, tags=["Auth"]) 
 app.include_router(cars.router, prefix="/cars", tags=["Cars Public"])
 app.include_router(rumah.router, tags=["Rumah Public"]) 
 app.include_router(ai_router.router, prefix="/ai", tags=["AI"])
 
-# ========== DAFTAR ROUTER ADMIN = TANPA PREFIX KARENA UDAH DI FILE ==========
+# ========== DAFTAR ROUTER ADMIN ==========
 app.include_router(admin_showroom.router, tags=["Admin Showroom"])  
 app.include_router(admin_mobil.router, tags=["Admin Mobil"])        
 app.include_router(admin_rumah.router, tags=["Admin Rumah"]) 
