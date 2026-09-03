@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from fastapi.responses import JSONResponse # TAMBAH INI
+from fastapi.responses import JSONResponse
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session, joinedload
 from database import get_db
@@ -15,6 +15,9 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 SECRET_KEY = os.getenv("SECRET_KEY", "rahasia-super-penting-ganti-di-railway") 
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
+# Cek apakah lagi di production https
+IS_PROD = os.getenv("RAILWAY_ENVIRONMENT") == "production" or "railway" in os.getenv("DOMAIN", "")
 
 def hash_password(password: str):
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -116,14 +119,14 @@ def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
     response.set_cookie(
         key=cookie_name,
         value=access_token,
-        httponly=True,   # JS gak bisa baca. Aman
+        httponly=True,
         samesite="lax",
-        secure=False,    # kalau udah https di railway ganti True
-        max_age=60*60*24*7 # 7 hari
+        secure=IS_PROD,  # <-- INI YG DIGANTI. True di prod, False di local
+        max_age=60*60*24*7,
+        path="/"
     )
     return response
 
-# UTILITY BUAT RESET
 @router.post("/reset-admin")
 def reset_admin(db: Session = Depends(get_db)):
     new_hash = hash_password("admin123")
