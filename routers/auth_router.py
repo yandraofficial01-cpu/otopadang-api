@@ -120,9 +120,21 @@ def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
         samesite="none",  # WAJIB NONE untuk cross-site Vercel
         secure=True,      # WAJIB TRUE untuk https Vercel
         max_age=60*60*24*7, # 7 hari
-        path="/" # WAJIB biar kebaca di semua path
+        path="/", # WAJIB biar kebaca di semua path
+        domain=".vercel.app" # TAMBAH INI - BIAR NYEBRANG KE FE
     )
     return response
+
+
+@router.get("/me") # TAMBAH INI BUAT CEK LOGIN TANPA F12
+def get_me(current_user: User = Depends(get_current_user)):
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "role": current_user.role,
+        "status": "ok"
+    }
+
 
 @router.post("/reset-admin")
 def reset_admin(db: Session = Depends(get_db)):
