@@ -30,8 +30,8 @@ app.add_middleware(
         "http://localhost:3000",            
         "https://otopadang.com",             
         "https://www.otopadang.com",         
-        "https://otopadang-frontend.vercel.app", # FE USER PROD
-        "https://*.vercel.app" # INI KUNCINYA - IZININ SEMUA FE VERCEL
+        "https://otopadang-frontend.vercel.app", # DOMAIN FE LU YG ASLI
+        "https://*.vercel.app" # BUAT PREVIEW DEPLOY
     ],
     allow_credentials=True, # WAJIB BUAT COOKIE CROSS DOMAIN
     allow_methods=["*"], 
