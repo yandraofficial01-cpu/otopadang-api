@@ -82,7 +82,7 @@ def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
         key=cookie_name,
         value=access_token,
         httponly=True,
-        same_site="none", # FIX: pake underscore dan huruf kecil
+        samesite="none", # FIX: ganti jadi samesite tanpa _
         secure=True,
         max_age=60*60*24*7,
         path="/"
@@ -97,3 +97,10 @@ def get_me(current_user: User = Depends(get_current_user)):
         "role": current_user.role,
         "status": "ok"
     }
+
+@router.post("/logout")
+def logout():
+    response = JSONResponse(content={"message": "Logged out"})
+    response.delete_cookie(key="admin_token", path="/", samesite="none", secure=True)
+    response.delete_cookie(key="showroom_token", path="/", samesite="none", secure=True)
+    return response
