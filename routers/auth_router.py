@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request # TAMBAH Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import JSONResponse
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session, joinedload
@@ -20,11 +20,9 @@ def hash_password(password: str):
 def verify_password(plain_password: str, hashed_password: str):
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
-# UBAH INI: BISA BACA DARI COOKIE DAN HEADER
 def get_current_user(request: Request, db: Session = Depends(get_db)):
     token = request.cookies.get("admin_token") or request.cookies.get("showroom_token")
 
-    # fallback kalau pake header
     if not token:
         auth: str = request.headers.get("Authorization")
         if auth and auth.startswith("Bearer "):
@@ -84,9 +82,9 @@ def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
         key=cookie_name,
         value=access_token,
         httponly=True,
-        samesite="None", # GANTI JADI N GEDE
-        secure=True, # WAJIB TRUE
-        max_age=60*60*24*7, # 7 hari
+        same_site="none", # FIX: pake underscore dan huruf kecil
+        secure=True,
+        max_age=60*60*24*7,
         path="/"
     )
     return response
