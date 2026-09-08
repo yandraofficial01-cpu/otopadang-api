@@ -10,7 +10,7 @@ from database import engine, get_db
 # IMPORT SEMUA ROUTER PUBLIC
 from routers import cars, rumah, ai_router, auth_router
 
-# IMPORT SEMUA ROUTER ADMIN - HAPUS admin_auth
+# IMPORT SEMUA ROUTER ADMIN
 from routers import admin_mobil, admin_rumah, admin_showroom, admin_blog
 
 app = FastAPI(
@@ -44,11 +44,11 @@ app.include_router(cars.router, prefix="/cars", tags=["Cars Public"])
 app.include_router(rumah.router, tags=["Rumah Public"]) 
 app.include_router(ai_router.router, prefix="/ai", tags=["AI"])
 
-# ========== DAFTAR ROUTER ADMIN ==========
-app.include_router(admin_showroom.router, tags=["Admin Showroom"])  
-app.include_router(admin_mobil.router, tags=["Admin Mobil"])        
-app.include_router(admin_rumah.router, tags=["Admin Rumah"]) 
-app.include_router(admin_blog.router, tags=["Admin Blog"])  
+# ========== DAFTAR ROUTER ADMIN - UDAH DITAMBAH PREFIX ==========
+app.include_router(admin_showroom.router, prefix="/admin/showroom", tags=["Admin Showroom"])  
+app.include_router(admin_mobil.router, prefix="/admin/mobil", tags=["Admin Mobil"])        
+app.include_router(admin_rumah.router, prefix="/admin/rumah", tags=["Admin Rumah"]) 
+app.include_router(admin_blog.router, prefix="/admin/blog", tags=["Admin Blog"])  
 
 @app.get("/")
 def read_root():
