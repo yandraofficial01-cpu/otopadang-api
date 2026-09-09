@@ -82,10 +82,11 @@ def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
         key=cookie_name,
         value=access_token,
         httponly=True,
-        samesite="none", # FIX: ganti jadi samesite tanpa _
-        secure=True,
+        samesite="none", # Wajib none untuk cross-site
+        secure=True, # Wajib true karena https
         max_age=60*60*24*7,
-        path="/"
+        path="/",
+        domain=".vercel.app" # <--- INI TAMBAHAN PENTING BUAT CROSS DOMAIN
     )
     return response
 
@@ -101,6 +102,6 @@ def get_me(current_user: User = Depends(get_current_user)):
 @router.post("/logout")
 def logout():
     response = JSONResponse(content={"message": "Logged out"})
-    response.delete_cookie(key="admin_token", path="/", samesite="none", secure=True)
-    response.delete_cookie(key="showroom_token", path="/", samesite="none", secure=True)
+    response.delete_cookie(key="admin_token", path="/", samesite="none", secure=True, domain=".vercel.app")
+    response.delete_cookie(key="showroom_token", path="/", samesite="none", secure=True, domain=".vercel.app")
     return response
