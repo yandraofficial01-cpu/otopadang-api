@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 from database import get_db
 from models import User, Showroom
 import bcrypt
-from dependencies import create_access_token
+from dependencies import create_access_token # ini dari file lain
 import schemas
 import os
 
@@ -13,6 +13,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 SECRET_KEY = os.getenv("SECRET_KEY", "rahasia-super-penting-ganti-di-vercel")
 ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 7 hari
 
 def hash_password(password: str):
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -21,28 +22,47 @@ def verify_password(plain_password: str, hashed_password: str):
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 def get_current_user(request: Request, db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Tidak bisa validasi token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    # 1. Cek dari Cookie dulu
     token = request.cookies.get("admin_token") or request.cookies.get("showroom_token")
 
+    # 2. Fallback ke Header Bearer kalau ada
     if not token:
         auth: str = request.headers.get("Authorization")
         if auth and auth.startswith("Bearer "):
             token = auth.split(" ")[1]
 
     if not token:
-        raise HTTPException(status_code=401, detail="Tidak bisa validasi token")
+        raise credentials_exception
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
-            raise HTTPException(status_code=401, detail="Tidak bisa validasi token")
+        email: str = payload.get("sub") # PENTING: harus "sub" sama kayak pas create
+        role: str = payload.get("role")
+        if email is None or role is None:
+            raise credentials_exception
     except JWTError:
-        raise HTTPException(status_code=401, detail="Tidak bisa validasi token")
+        raise credentials_exception
 
-    user = db.query(User).filter(User.email == email).first()
+    user = db.query(User).options(joinedload(User.showroom)).filter(User.email == email).first()
     if user is None:
-        raise HTTPException(status_code=401, detail="Tidak bisa validasi token")
+        raise credentials_exception
     return user
+
+def require_admin(current_user: User = Depends(get_current_user)):
+    if current_user.role!= "admin":
+        raise HTTPException(status_code=403, detail="Akses ditolak. Khusus Admin")
+    return current_user
+
+def require_showroom(current_user: User = Depends(get_current_user)):
+    if current_user.role!= "showroom":
+        raise HTTPException(status_code=403, detail="Akses ditolak. Khusus Showroom")
+    return current_user
 
 @router.post("/login")
 def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
@@ -57,12 +77,14 @@ def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Showroom belum diapprove admin")
 
     if not verify_password(request.password, user.password):
-        raise HTTPException(status_code=400, detail="Email atau password salah")
+        HTTPException(status_code=400, detail="Email atau password salah")
 
+    # PENTING: payload harus ada "sub" biar get_current_user kebaca
     access_token = create_access_token(data={
-        "sub": user.email,
+        "sub": user.email, # <-- INI KUNCINYA
         "role": user.role,
-        "showroom_id": user.showroom_id
+        "showroom_id": user.showroom_id,
+        "user_id": user.id
     })
 
     cookie_name = "admin_token" if user.role == "admin" else "showroom_token"
@@ -86,7 +108,7 @@ def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
         secure=True, # Wajib true karena https
         max_age=60*60*24*7,
         path="/"
-        # domain dihapus biar otomatis ngikut domain BE
+        # domain dihapus biar otomatis ngikut domain BE. UDAH BENER
     )
     return response
 
@@ -96,6 +118,8 @@ def get_me(current_user: User = Depends(get_current_user)):
         "id": current_user.id,
         "email": current_user.email,
         "role": current_user.role,
+        "nama": current_user.name,
+        "showroom_id": current_user.showroom_id,
         "status": "ok"
     }
 
