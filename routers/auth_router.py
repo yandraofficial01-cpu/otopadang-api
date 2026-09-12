@@ -14,6 +14,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 SECRET_KEY = os.getenv("SECRET_KEY", "rahasia-super-penting-ganti-di-vercel")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 7 hari
+COOKIE_DOMAIN = ".vercel.app" # <-- TAMBAHIN INI BUAT VERCEL
 
 def hash_password(password: str):
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -42,7 +43,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub") # PENTING: harus "sub" sama kayak pas create
+        email: str = payload.get("sub") 
         role: str = payload.get("role")
         if email is None or role is None:
             raise credentials_exception
@@ -77,11 +78,11 @@ def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Showroom belum diapprove admin")
 
     if not verify_password(request.password, user.password):
-        HTTPException(status_code=400, detail="Email atau password salah")
+        raise HTTPException(status_code=400, detail="Email atau password salah") # <-- TADI LUPA "raise"
 
     # PENTING: payload harus ada "sub" biar get_current_user kebaca
     access_token = create_access_token(data={
-        "sub": user.email, # <-- INI KUNCINYA
+        "sub": user.email,
         "role": user.role,
         "showroom_id": user.showroom_id,
         "user_id": user.id
@@ -106,9 +107,9 @@ def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
         httponly=True,
         samesite="none", # Wajib none untuk cross-site Vercel
         secure=True, # Wajib true karena https
+        domain=COOKIE_DOMAIN, # <-- INI KUNCINYA. TITIK DI DEPAN WAJIB
         max_age=60*60*24*7,
         path="/"
-        # domain dihapus biar otomatis ngikut domain BE. UDAH BENER
     )
     return response
 
@@ -126,6 +127,7 @@ def get_me(current_user: User = Depends(get_current_user)):
 @router.post("/logout")
 def logout():
     response = JSONResponse(content={"message": "Logged out"})
-    response.delete_cookie(key="admin_token", path="/", samesite="none", secure=True)
-    response.delete_cookie(key="showroom_token", path="/", samesite="none", secure=True)
+    # WAJIB SAMAIN PARAMETER PAS DELETE
+    response.delete_cookie(key="admin_token", path="/", samesite="none", secure=True, domain=COOKIE_DOMAIN)
+    response.delete_cookie(key="showroom_token", path="/", samesite="none", secure=True, domain=COOKIE_DOMAIN)
     return response
