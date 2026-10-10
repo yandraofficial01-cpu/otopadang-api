@@ -1,16 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-
-# Load semua model biar tabel ke-buat
 import app.models
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(
-    title="OtoPadang API",
-    version="1.0.0"
-)
+app = FastAPI(title="OtoPadang API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,36 +15,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Router - coba load satu2 biar gak crash kalau file belum ada
+# AUTH
 try:
-    from app.routers import auth
-    app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
+    from app.routers.auth import admin_auth, showroom_auth
+    app.include_router(admin_auth.router, prefix="/api/auth/admin", tags=["Auth Admin"])
+    app.include_router(showroom_auth.router, prefix="/api/auth/showroom", tags=["Auth Showroom"])
 except Exception as e:
-    print(f"Auth router skip: {e}")
+    print(f"Auth skip: {e}")
 
+# ADMIN
 try:
-    from app.routers import showrooms
-    app.include_router(showrooms.router, prefix="/api/showrooms", tags=["Showrooms"])
+    from app.routers.admin import showroom_router, mobil_router, blog_router
+    app.include_router(showroom_router.router, prefix="/api/admin/showrooms", tags=["Admin Showroom"])
+    app.include_router(mobil_router.router, prefix="/api/admin/mobils", tags=["Admin Mobil"])
+    app.include_router(blog_router.router, prefix="/api/admin/blogs", tags=["Admin Blog"])
 except Exception as e:
-    print(f"Showrooms router skip: {e}")
+    print(f"Admin skip: {e}")
 
+# PUBLIC - bikin file dummy biar main.py gak error
 try:
-    from app.routers import mobils
-    app.include_router(mobils.router, prefix="/api/mobils", tags=["Mobils"])
+    from app.routers import public
+    app.include_router(public.router, prefix="/api", tags=["Public"])
 except Exception as e:
-    print(f"Mobils router skip: {e}")
-
-try:
-    from app.routers import blogs
-    app.include_router(blogs.router, prefix="/api/blogs", tags=["Blogs"])
-except Exception as e:
-    print(f"Blogs router skip: {e}")
-
-try:
-    from app.routers import upload
-    app.include_router(upload.router, prefix="/api/upload", tags=["Upload"])
-except Exception as e:
-    print(f"Upload router skip: {e}")
+    print(f"Public skip: {e}")
 
 @app.get("/")
 def root():
