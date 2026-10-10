@@ -1,7 +1,7 @@
 from sqlalchemy import Column, BigInteger, String, Text, Integer, TIMESTAMP
 from sqlalchemy import Boolean as TinyInt
 from sqlalchemy.sql import func
-from database import Base
+from app.database import Base
 
 class Blog(Base):
     __tablename__ = "blogs"
